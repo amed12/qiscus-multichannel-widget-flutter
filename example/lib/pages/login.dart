@@ -109,13 +109,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => QChatRoomScreen(onBack: (ctx) {
+          builder: (context) => WillPopScope(child: QChatRoomScreen(onBack: (ctx) {
             print('on do back!');
             mulchan.clearUser();
-            Navigator.of(context)
-                .maybePop()
-                .then((r) => debugPrint('maybePop: $r'));
-          }),
+            Navigator.of(context).pop();
+          }), onWillPop:  () async => false),
         ),
       );
     } catch (e) {
