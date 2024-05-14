@@ -55,7 +55,7 @@ class _ExampleWithFabScreenState extends ConsumerState<ExampleWithFabScreen> {
               child: snapshot.connectionState == ConnectionState.waiting
                   ? CircularProgressIndicator()
                   : snapshot.hasData
-                      ? Text(snapshot.data?.name ?? '')
+                      ? Text('Ready to chat on room ${snapshot.data?.name}')
                       : snapshot.hasError
                           ? Text('Error: ${snapshot.error}')
                           : Text('No chat room found'),
