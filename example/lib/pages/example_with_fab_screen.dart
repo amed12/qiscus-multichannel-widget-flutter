@@ -13,6 +13,7 @@ class ExampleWithFabScreen extends ConsumerStatefulWidget {
 
 class _ExampleWithFabScreenState extends ConsumerState<ExampleWithFabScreen> {
   late Stream<QChatRoom> chatRoomStream;
+  int unreadCount = 0;
 
   @override
   void initState() {
@@ -30,6 +31,18 @@ class _ExampleWithFabScreenState extends ConsumerState<ExampleWithFabScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ///use this provider to listen received message
+    ///and filter who is sender
+    ref.listen<List<QMessage>>(
+      messagesProvider,
+      (previousMessages, newMessages) async {
+        if (newMessages.last.sender.id != loggedInAccountId()) {
+          setState(() {
+            unreadCount++;
+          });
+        }
+      },
+    );
 
     return Scaffold(
         appBar: AppBar(
@@ -38,39 +51,62 @@ class _ExampleWithFabScreenState extends ConsumerState<ExampleWithFabScreen> {
         body: StreamBuilder<QChatRoom>(
           stream: chatRoomStream,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            } else if (snapshot.hasData) {
-// Use your chat room data here
-              return Center(child: Text('Ready to chat on room ${snapshot.data?.name}'));
-            } else {
-              return Text('No chat room found');
-            }
+            return Center(
+              child: snapshot.connectionState == ConnectionState.waiting
+                  ? CircularProgressIndicator()
+                  : snapshot.hasData
+                      ? Text(snapshot.data?.name ?? '')
+                      : snapshot.hasError
+                          ? Text('Error: ${snapshot.error}')
+                          : Text('No chat room found'),
+            );
           },
         ),
         floatingActionButton: Padding(
           padding: EdgeInsets.all(16),
-          child: FloatingActionButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => QChatRoomScreen(onBack: (ctx) {
-                    print('on do back!');
-                    Navigator.of(context)
-                        .maybePop()
-                        .then((r) => debugPrint('maybePop: $r'));
-                  }),
-                ),
-              );
-            },
-            tooltip: 'Enter room chat',
-            child: Icon(Icons.chat_bubble), //Change Icon
+          child: Stack(
+            children: [
+              FloatingActionButton(
+                onPressed: () {
+                  ///reset unread badge when enter
+                  ///indicating that user logged in enter chat room and read all chat
+                  setState(() {
+                    unreadCount = 0;
+                  });
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => QChatRoomScreen(onBack: (ctx) {
+                        print('on do back!');
+                        Navigator.of(context)
+                            .maybePop()
+                            .then((r) => debugPrint('maybePop: $r'));
+                      }),
+                    ),
+                  );
+                },
+                tooltip: 'Enter room chat',
+                child: Icon(Icons.chat_bubble), //Change Icon
+              ),
+              Positioned(
+                top: 4,
+                right: 8,
+                child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.all(Radius.circular(30))
+                    ),
+                    padding: EdgeInsets.all(4),
+                    child: Text(unreadCount.toString(),
+                    style: Theme.of(context).textTheme.labelSmall),
+                  ),
+              )
+            ],
           ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat);
   }
+  
+  String? loggedInAccountId() => ref.watch(accountProvider.select((v) => v.asData?.value.id));
 
   void setUser({
     required String userId,
