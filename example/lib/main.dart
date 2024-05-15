@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multichannel_flutter_sample/firebase_options.dart';
 import 'package:multichannel_flutter_sample/pages/example_with_fab_screen.dart';
 import 'package:qiscus_multichannel_widget/qiscus_multichannel_widget.dart';
@@ -14,7 +15,7 @@ void main() async {
 }
 
 class App extends StatefulWidget {
-  const App({Key? key}) : super(key: key);
+  const App({super.key});
 
   @override
   State<App> createState() => _AppStateBuilder();
@@ -26,17 +27,19 @@ class _AppStateBuilder extends State<App> {
 
   @override
   Widget build(BuildContext context) {
+    return buildWithoutProviderScope(context);
+  }
+
+  Widget buildWithoutProviderScope(BuildContext context) {
     return QMultichannelProvider(
-      // sdkBaseUrl: baseURL,
+      // parentProviderContainer: container,
       appId: appId,
-      // channelId: channelId,
       title: 'Some custom title',
       avatar: QAvatarConfig.enabled(),
       rightAvatar: QAvatarConfig.disabled(),
       hideEventUI: true,
       onURLTapped: (url) {
         var uri = Uri.tryParse(url);
-        print('url tapped: $url $uri');
         if (uri != null) {
           launchUrl(uri, mode: LaunchMode.platformDefault);
         }
@@ -46,6 +49,31 @@ class _AppStateBuilder extends State<App> {
           home: ExampleWithFabScreen(),
         );
       },
+    );
+  }
+
+  Widget buildWithProviderScope(BuildContext context) {
+    return ProviderScope(
+      parent: container,
+      child: QMultichannelProvider(
+        parentProviderContainer: container,
+        appId: appId,
+        title: 'Some custom title',
+        avatar: QAvatarConfig.enabled(),
+        rightAvatar: QAvatarConfig.disabled(),
+        hideEventUI: true,
+        onURLTapped: (url) {
+          var uri = Uri.tryParse(url);
+          if (uri != null) {
+            launchUrl(uri, mode: LaunchMode.platformDefault);
+          }
+        },
+        builder: (context) {
+          return MaterialApp(
+            home: LoginScreen(),
+          );
+        },
+      ),
     );
   }
 }
