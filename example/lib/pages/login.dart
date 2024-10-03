@@ -1,5 +1,5 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:multichannel_flutter_sample/pages/q_custom_screen.dart';
 import 'package:qiscus_multichannel_widget/qiscus_multichannel_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,16 +37,63 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  late final appIdController =
-      TextEditingController(text: 'wefds-c6f0p2h1cxwz3oq');
+  late final appIdController = TextEditingController(text: 'your-app-id');
   late final usernameController = TextEditingController(text: 'guest-1001');
   late final displayNameController = TextEditingController(text: 'guest-1001');
+  late final phoneNumberController = TextEditingController();
+  late final schoolNameController = TextEditingController();
+  late final roleController = TextEditingController();
+  late final messageController = TextEditingController();
 
-  // Non Secure Channel
-  late final channelIdController = TextEditingController(text: '126962');
+  late final channelIdController = TextEditingController(text: '126962'); // Non-secure Channel
 
-  // Secure Channel
-  // late final channelIdController = TextEditingController(text: '126965');
+  // State for loading
+  bool isLoading = false;
+
+  // This state tracks whether the button should be disabled
+  bool isButtonDisabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _addListenersToTextFields();
+  }
+
+  @override
+  void dispose() {
+    appIdController.dispose();
+    usernameController.dispose();
+    displayNameController.dispose();
+    phoneNumberController.dispose();
+    schoolNameController.dispose();
+    roleController.dispose();
+    messageController.dispose();
+    channelIdController.dispose();
+    super.dispose();
+  }
+
+  void _addListenersToTextFields() {
+    // Add listeners to all TextEditingControllers to watch for changes
+    appIdController.addListener(_updateButtonState);
+    usernameController.addListener(_updateButtonState);
+    displayNameController.addListener(_updateButtonState);
+    phoneNumberController.addListener(_updateButtonState);
+    schoolNameController.addListener(_updateButtonState);
+    roleController.addListener(_updateButtonState);
+    messageController.addListener(_updateButtonState);
+  }
+
+  void _updateButtonState() {
+    setState(() {
+      isButtonDisabled = appIdController.text.isEmpty ||
+          usernameController.text.isEmpty ||
+          displayNameController.text.isEmpty ||
+          phoneNumberController.text.isEmpty ||
+          schoolNameController.text.isEmpty ||
+          roleController.text.isEmpty ||
+          messageController.text.isEmpty;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,33 +114,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
                 TextField(
-                  decoration: const InputDecoration(hintText: 'App ID'),
-                  controller: appIdController,
-                  onSubmitted: (val) {
-                    widget.onChangeAppId?.call(val);
-                  },
-                ),
-                TextField(
-                  decoration: const InputDecoration(hintText: 'Channel ID'),
-                  controller: channelIdController,
-                ),
-                TextField(
-                  decoration: const InputDecoration(
-                    hintText: 'Username',
-                  ),
+                  decoration: const InputDecoration(hintText: 'Username'),
                   controller: usernameController,
                 ),
                 TextField(
-                  decoration: const InputDecoration(
-                    hintText: 'Display name',
-                  ),
+                  decoration: const InputDecoration(hintText: 'Display name'),
                   controller: displayNameController,
+                ),
+                TextField(
+                  decoration: const InputDecoration(hintText: 'Phone Number'),
+                  controller: phoneNumberController,
+                ),
+                TextField(
+                  decoration: const InputDecoration(hintText: 'School Name'),
+                  controller: schoolNameController,
+                ),
+                TextField(
+                  decoration: const InputDecoration(hintText: 'Role'),
+                  controller: roleController,
+                ),
+                TextField(
+                  decoration: const InputDecoration(hintText: 'Message'),
+                  controller: messageController,
                 ),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => _onDoLogin(),
-                    child: const Text('Login'),
+                    onPressed: isButtonDisabled || isLoading ? null : () => _handleLoginButtonPress(context),
+                    child: isLoading
+                        ? const CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          )
+                        : const Text('Login'),
                   ),
                 ),
               ],
@@ -104,51 +156,75 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  void _onDoLogin() async {
-    var channelId = channelIdController.text;
-    var username = usernameController.text;
-    var displayName = displayNameController.text;
+  Future<void> _handleLoginButtonPress(BuildContext context) async {
+    setState(() {
+      isLoading = true; // Show loading
+    });
 
     try {
-      print('set user! $username');
-      ref.read(QMultichannel.provider).setChannelId(channelId);
-      ref.read(QMultichannel.provider).setUser(
-        userId: username,
-        displayName: displayName,
-        userProperties: {'name': 'something', 'username': username},
-        extras: {'extras_value1': 'value1'},
+      await openLiveChat(
+        context,
+        name: displayNameController.text,   // Get from input
+        phoneNumber: phoneNumberController.text, // Get from input
+        schoolName: schoolNameController.text,  // Get from input
+        role: roleController.text, // Get from input
+        message: messageController.text, // Get from input
+        ref: ref.read(QMultichannel.provider),
       );
     } catch (e) {
-      print('got error');
-      print(e);
+      print('Error: $e');
+    } finally {
+      setState(() {
+        isLoading = false; // Hide loading
+      });
+    }
+  }
+
+  Future<void> openLiveChat(
+    BuildContext context, {
+    required IQMultichannel ref,
+    required String name,
+    required String phoneNumber,
+    required String schoolName,
+    required String role,
+    required String message,
+    bool guest = false,
+  }) async {
+    final roles = {
+      'parent': 'Orang Tua',
+      'student': 'Siswa',
+      'teacher': 'Guru',
+      'school': 'Sekolah',
+    };
+
+    try {
+      ref.setChannelId('127570'); // Example channelId
+      ref.setUser(
+        userId: phoneNumber,
+        displayName: name,
+        userProperties: {'Sekolah': schoolName, 'Role': roles[role]},
+      );
+    } catch (e) {
+      print('Error setting user: $e');
+      return;
     }
 
-    var deviceId = await FirebaseMessaging.instance.getToken();
-    ref.read(QMultichannel.provider).setDeviceId(deviceId!);
-
-    print('initiate chat!');
     try {
-      var appId = ref.read(appIdProvider);
-      print('appId: $appId');
-      ref.read(QMultichannel.provider).initiateChat().then((room) {
-        print('success initiate chat: ${room.id}');
-      }, onError: (err) {
-        print('fail initiate chat: ${err.runtimeType}');
-        print(err);
-      });
-
+      await ref.initiateChat(); // Wait until the chat is fully initiated
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => QChatRoomScreen(onBack: (ctx) {
-            ref.read(QMultichannel.provider).clearUser();
-            Navigator.of(context)
-                .maybePop()
-                .then((r) => debugPrint('maybePop: $r'));
-          }),
+          builder: (context) => QChatRoomCustomScreen(
+            onBack: (ctx) {
+              ref.clearUser();
+              Navigator.of(context).maybePop();
+            },
+            message: message,
+          ),
         ),
       );
     } catch (e) {
-      print('type: ${e.runtimeType}');
+      ref.clearUser();
+      print('Error initiating chat: $e');
     }
   }
 }
