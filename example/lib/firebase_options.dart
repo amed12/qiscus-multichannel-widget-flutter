@@ -50,19 +50,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCTSW807miS8iMozyxZ4gCYE2kkMC0aqk0',
-    appId: '1:1064021661522:android:2656b4393da1f5c9ea4c8b',
-    messagingSenderId: '1064021661522',
-    projectId: 'flutter-multichannel-sam-4c9c1',
-    storageBucket: 'flutter-multichannel-sam-4c9c1.appspot.com',
+    apiKey: 'AIzaSyCvMi61979hRd-f3EpHIW3ScTFF8f_lD5Q',
+    appId: '1:937674190351:android:da756e37e719ad4ef97d7a',
+    messagingSenderId: '937674190351',
+    projectId: 'flutter-oc-sample',
+    storageBucket: 'flutter-oc-sample.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCXKZOdXtj6E8IeE2jw32KnEvY8yK8Clzg',
-    appId: '1:1064021661522:ios:78f1382328a1f70aea4c8b',
-    messagingSenderId: '1064021661522',
-    projectId: 'flutter-multichannel-sam-4c9c1',
-    storageBucket: 'flutter-multichannel-sam-4c9c1.appspot.com',
+    apiKey: 'AIzaSyDSy-5ctlcP2NYeGrIkPy9Exav2HC4blV8',
+    appId: '1:937674190351:ios:1e601a4fb6eeb295f97d7a',
+    messagingSenderId: '937674190351',
+    projectId: 'flutter-oc-sample',
+    storageBucket: 'flutter-oc-sample.appspot.com',
     iosBundleId: 'com.example.multichannelFlutterSample',
   );
 }

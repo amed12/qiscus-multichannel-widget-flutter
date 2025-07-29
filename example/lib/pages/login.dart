@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:multichannel_flutter_sample/pages/q_custom_screen.dart';
 import 'package:qiscus_multichannel_widget/qiscus_multichannel_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../constants.dart';
 
 class LoginPage extends Page {
   const LoginPage({
@@ -45,7 +46,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   late final roleController = TextEditingController();
   late final messageController = TextEditingController();
 
-  late final channelIdController = TextEditingController(text: '126962'); // Non-secure Channel
+  late final channelIdController =
+      TextEditingController(text: '126962'); // Non-secure Channel
 
   // State for loading
   bool isLoading = false;
@@ -140,10 +142,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: isButtonDisabled || isLoading ? null : () => _handleLoginButtonPress(context),
+                    onPressed: isButtonDisabled || isLoading
+                        ? null
+                        : () => _handleLoginButtonPress(context),
                     child: isLoading
                         ? const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           )
                         : const Text('Login'),
                   ),
@@ -164,9 +169,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await openLiveChat(
         context,
-        name: displayNameController.text,   // Get from input
+        name: displayNameController.text, // Get from input
         phoneNumber: phoneNumberController.text, // Get from input
-        schoolName: schoolNameController.text,  // Get from input
+        schoolName: schoolNameController.text, // Get from input
         role: roleController.text, // Get from input
         message: messageController.text, // Get from input
         ref: ref.read(QMultichannel.provider),
@@ -198,10 +203,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     };
 
     try {
-      ref.setChannelId('127570'); // Example channelId
+      ref.setChannelId(channelId); // Example channelId
       ref.setUser(
         userId: phoneNumber,
         displayName: name,
+        avatarUrl:
+            'https://smansaskym.sch.id/wp-content/uploads/2022/12/4687668ad0c2a964a603c0f3c766e336.jpg',
         userProperties: {'Sekolah': schoolName, 'Role': roles[role]},
       );
     } catch (e) {
@@ -210,15 +217,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     try {
-      await ref.initiateChat(); // Wait until the chat is fully initiated
+      await ref.initiateChat();
+      // Wait until the chat is fully initiated
+      if (!context.mounted) {
+        return;
+      }
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => QChatRoomCustomScreen(
+          builder: (context) => QChatRoomScreen(
             onBack: (ctx) {
               ref.clearUser();
               Navigator.of(context).maybePop();
             },
-            message: message,
           ),
         ),
       );
