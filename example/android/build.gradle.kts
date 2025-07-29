@@ -1,3 +1,13 @@
+// Load flutter properties file if it exists
+val flutterPropertiesFile = rootProject.file("flutter.properties")
+if (flutterPropertiesFile.exists()) {
+    val properties = java.util.Properties()
+    properties.load(java.io.FileInputStream(flutterPropertiesFile))
+    properties.forEach { key, value ->
+        extra[key.toString()] = value
+    }
+}
+
 // Add buildscript block for plugins
 buildscript {
     repositories {
