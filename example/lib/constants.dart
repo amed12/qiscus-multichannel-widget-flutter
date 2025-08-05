@@ -1,2 +1,2 @@
-const appId = 'ramo-29lun8b1ulepsaio';
-const channelId = '127419';
+const appId = 'qknli-e5h5nhgjdvlf200';
+const channelId = '';

@@ -27,7 +27,7 @@ class _AppStateBuilder extends State<App> {
 
   @override
   Widget build(BuildContext context) {
-    return buildWithProviderScope(context);
+    return buildWithoutProviderScope(context);
   }
 
   Widget buildWithoutProviderScope(BuildContext context) {

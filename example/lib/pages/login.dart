@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qiscus_multichannel_widget/qiscus_multichannel_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart' as intl;
 
 import '../constants.dart';
 
@@ -39,12 +40,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   late final appIdController = TextEditingController(text: 'your-app-id');
-  late final usernameController = TextEditingController(text: 'guest-1001');
-  late final displayNameController = TextEditingController(text: 'guest-1001');
-  late final phoneNumberController = TextEditingController();
-  late final schoolNameController = TextEditingController();
-  late final roleController = TextEditingController();
-  late final messageController = TextEditingController();
+  late final usernameController = TextEditingController();
+  late final displayNameController = TextEditingController();
+  late final phoneNumberController =
+      TextEditingController(text: '081234567890');
+  late final schoolNameController = TextEditingController(text: 'Demo School');
+  late final roleController = TextEditingController(text: 'student');
+  late final messageController =
+      TextEditingController(text: 'Hello, I need help');
 
   late final channelIdController =
       TextEditingController(text: '126962'); // Non-secure Channel
@@ -52,13 +55,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // State for loading
   bool isLoading = false;
 
-  // This state tracks whether the button should be disabled
-  bool isButtonDisabled = true;
+  // This state tracks whether login is successful
+  bool isLoginSuccess = false;
+
+  // Reference to IQMultichannel
+  late IQMultichannel multichannel;
 
   @override
   void initState() {
     super.initState();
-    _addListenersToTextFields();
+    multichannel = ref.read(QMultichannel.provider);
+    multichannel.enableDebugMode(true);
+    _generateRandomUser();
+    _autoLogin();
+  }
+
+  void _generateRandomUser() {
+    final now = DateTime.now();
+    final formattedDate = intl.DateFormat('yyyyMMdd-HHmmss').format(now);
+    final username = 'buddy-$formattedDate';
+
+    usernameController.text = username;
+    displayNameController.text = username;
   }
 
   @override
@@ -74,127 +92,121 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _addListenersToTextFields() {
-    // Add listeners to all TextEditingControllers to watch for changes
-    appIdController.addListener(_updateButtonState);
-    usernameController.addListener(_updateButtonState);
-    displayNameController.addListener(_updateButtonState);
-    phoneNumberController.addListener(_updateButtonState);
-    schoolNameController.addListener(_updateButtonState);
-    roleController.addListener(_updateButtonState);
-    messageController.addListener(_updateButtonState);
-  }
-
-  void _updateButtonState() {
+  Future<void> _autoLogin() async {
     setState(() {
-      isButtonDisabled = appIdController.text.isEmpty ||
-          usernameController.text.isEmpty ||
-          displayNameController.text.isEmpty ||
-          phoneNumberController.text.isEmpty ||
-          schoolNameController.text.isEmpty ||
-          roleController.text.isEmpty ||
-          messageController.text.isEmpty;
+      isLoading = true;
     });
+
+    try {
+      await openLiveChat(
+        context,
+        name: displayNameController.text,
+        phoneNumber: phoneNumberController.text,
+        schoolName: schoolNameController.text,
+        role: roleController.text,
+        message: messageController.text,
+        ref: multichannel,
+      );
+
+      setState(() {
+        isLoginSuccess = true;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error during auto login: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Container(
-          color: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const Text(
-                  'Login',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 25.0, right: 25.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Text(
+                'Auto Login',
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
                 ),
-                TextField(
-                  decoration: const InputDecoration(hintText: 'Username'),
-                  controller: usernameController,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Username: ${usernameController.text}',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Status: ${isLoading ? "Logging in..." : isLoginSuccess ? "Login Success" : "Login Failed"}',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isLoginSuccess ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.bold,
                 ),
-                TextField(
-                  decoration: const InputDecoration(hintText: 'Display name'),
-                  controller: displayNameController,
-                ),
-                TextField(
-                  decoration: const InputDecoration(hintText: 'Phone Number'),
-                  controller: phoneNumberController,
-                ),
-                TextField(
-                  decoration: const InputDecoration(hintText: 'School Name'),
-                  controller: schoolNameController,
-                ),
-                TextField(
-                  decoration: const InputDecoration(hintText: 'Role'),
-                  controller: roleController,
-                ),
-                TextField(
-                  decoration: const InputDecoration(hintText: 'Message'),
-                  controller: messageController,
-                ),
+              ),
+              const SizedBox(height: 20),
+              if (isLoading)
+                const CircularProgressIndicator()
+              else if (!isLoginSuccess)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: isButtonDisabled || isLoading
-                        ? null
-                        : () => _handleLoginButtonPress(context),
-                    child: isLoading
-                        ? const CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          )
-                        : const Text('Login'),
+                    onPressed: _autoLogin,
+                    child: const Text('Retry Login'),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
+        ),
+      ),
+      floatingActionButton: isLoginSuccess
+          ? FloatingActionButton(
+              onPressed: () => _initiateChatAndNavigate(context, multichannel),
+              tooltip: 'Start Chat',
+              child: const Icon(Icons.chat),
+            )
+          : null,
+    );
+  }
+
+  void _navigateToChatRoom(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => QChatRoomScreen(
+          onBack: (ctx) {
+            Navigator.of(context).maybePop();
+          },
         ),
       ),
     );
   }
 
-  Future<void> _handleLoginButtonPress(BuildContext context) async {
-    setState(() {
-      isLoading = true; // Show loading
-    });
-
-    try {
-      await openLiveChat(
-        context,
-        name: displayNameController.text, // Get from input
-        phoneNumber: phoneNumberController.text, // Get from input
-        schoolName: schoolNameController.text, // Get from input
-        role: roleController.text, // Get from input
-        message: messageController.text, // Get from input
-        ref: ref.read(QMultichannel.provider),
-      );
-    } catch (e) {
-      print('Error: $e');
-    } finally {
-      setState(() {
-        isLoading = false; // Hide loading
-      });
-    }
-  }
-
   Future<void> openLiveChat(
     BuildContext context, {
-    required IQMultichannel ref,
     required String name,
     required String phoneNumber,
     required String schoolName,
     required String role,
     required String message,
+    required IQMultichannel ref,
     bool guest = false,
   }) async {
+    await _setupUser(ref, name, phoneNumber, schoolName, role);
+  }
+
+  Future<void> _setupUser(
+    IQMultichannel ref,
+    String name,
+    String phoneNumber,
+    String schoolName,
+    String role,
+  ) async {
     final roles = {
       'parent': 'Orang Tua',
       'student': 'Siswa',
@@ -213,25 +225,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     } catch (e) {
       print('Error setting user: $e');
-      return;
+      rethrow;
     }
+  }
 
+  Future<void> _initiateChatAndNavigate(
+    BuildContext context,
+    IQMultichannel ref,
+  ) async {
     try {
       await ref.initiateChat();
       // Wait until the chat is fully initiated
       if (!context.mounted) {
         return;
       }
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => QChatRoomScreen(
-            onBack: (ctx) {
-              ref.clearUser();
-              Navigator.of(context).maybePop();
-            },
-          ),
-        ),
-      );
+      _navigateToChatRoom(context);
     } catch (e) {
       ref.clearUser();
       print('Error initiating chat: $e');
