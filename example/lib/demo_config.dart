@@ -54,7 +54,7 @@ class DemoUiConfig {
     required this.userId,
     required this.displayName,
     this.roomTitle = 'Customer Service',
-    this.avatarUrl = 'https://via.placeholder.com/200',
+    this.avatarUrl = 'https://placehold.co/200',
     this.showSystemEvents = true,
     this.showLeftAvatar = true,
     this.showRightAvatar = false,
