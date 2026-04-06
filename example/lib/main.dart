@@ -13,9 +13,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const ProviderScope(child: App()));
+  runApp(
+    const ProviderScope(
+      child: App(),
+    ),
+  );
 }
 
+// ignore: missing_provider_scope
 final demoConfigProvider = StateProvider<DemoUiConfig>((ref) => const DemoUiConfig(
       appId: constant.appId,
       channelId: constant.channelId,
