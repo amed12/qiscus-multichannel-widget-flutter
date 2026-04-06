@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multichannel_flutter_sample/main.dart';
 import 'package:multichannel_flutter_sample/demo_config.dart';
+
 
 void main() {
   testWidgets('Setup UI renders modern sections and default values', (WidgetTester tester) async {
     // Note: App calls Firebase.initializeApp in main, but we pump the App widget here.
     // In a real scenario, we might want to mock Firebase.
-    await tester.pumpWidget(const App());
+    await tester.pumpWidget(const ProviderScope(child: App()));
 
     // Check modern sections
     expect(find.text('Multichannel Live Chat'), findsOneWidget);
@@ -20,7 +22,7 @@ void main() {
   });
 
   testWidgets('Validation: Start Chat blocks without required fields', (WidgetTester tester) async {
-    await tester.pumpWidget(const App());
+    await tester.pumpWidget(const ProviderScope(child: App()));
 
     // Clear App ID (this triggers the onChanged to update config in App)
     await tester.enterText(find.widgetWithText(TextField, 'App ID'), '');
@@ -35,7 +37,7 @@ void main() {
   });
 
   testWidgets('Theme selector and toggle updates the config', (WidgetTester tester) async {
-    await tester.pumpWidget(const App());
+    await tester.pumpWidget(const ProviderScope(child: App()));
 
     // Initially "Qiscus Teal" (from DemoThemePreset.qiscus)
     expect(find.text(DemoThemePreset.qiscus.label), findsOneWidget);

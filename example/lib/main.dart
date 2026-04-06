@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multichannel_flutter_sample/constant.dart' as constant;
 import 'package:multichannel_flutter_sample/demo_config.dart';
 import 'package:multichannel_flutter_sample/login_screen.dart';
@@ -12,7 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const App());
+  runApp(const ProviderScope(child: App()));
 }
 
 class App extends StatefulWidget {
@@ -41,8 +42,12 @@ class _AppState extends State<App> {
     return QMultichannelProvider(
       appId: config.appId,
       title: config.roomTitle,
-      avatar: config.showLeftAvatar ? QAvatarConfig.editable(config.avatarUrl) : const QAvatarConfig.disabled(),
-      rightAvatar: config.showRightAvatar ? const QAvatarConfig.enabled() : const QAvatarConfig.disabled(),
+      avatar: config.showLeftAvatar
+          ? QAvatarConfig.editable(config.avatarUrl)
+          : const QAvatarConfig.disabled(),
+      rightAvatar: config.showRightAvatar
+          ? const QAvatarConfig.enabled()
+          : const QAvatarConfig.disabled(),
       hideEventUI: !config.showSystemEvents,
       theme: config.themePreset.theme,
       onURLTapped: (url) {
@@ -69,4 +74,3 @@ class _AppState extends State<App> {
     );
   }
 }
-
