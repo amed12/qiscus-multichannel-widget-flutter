@@ -16,14 +16,14 @@ void main() async {
   runApp(const ProviderScope(child: App()));
 }
 
-class App extends StatefulWidget {
+class App extends ConsumerStatefulWidget {
   const App({super.key});
 
   @override
-  State<App> createState() => _AppState();
+  ConsumerState<App> createState() => _AppState();
 }
 
-class _AppState extends State<App> {
+class _AppState extends ConsumerState<App> {
   DemoUiConfig config = const DemoUiConfig(
     appId: constant.appId,
     channelId: constant.channelId,
