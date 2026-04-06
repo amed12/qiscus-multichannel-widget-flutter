@@ -16,29 +16,24 @@ void main() async {
   runApp(const ProviderScope(child: App()));
 }
 
-class App extends ConsumerStatefulWidget {
+final demoConfigProvider = StateProvider<DemoUiConfig>((ref) => const DemoUiConfig(
+      appId: constant.appId,
+      channelId: constant.channelId,
+      userId: 'guest-1001',
+      displayName: 'Guest 1001',
+    ));
+
+class App extends ConsumerWidget {
   const App({super.key});
 
   @override
-  ConsumerState<App> createState() => _AppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(demoConfigProvider);
 
-class _AppState extends ConsumerState<App> {
-  DemoUiConfig config = const DemoUiConfig(
-    appId: constant.appId,
-    channelId: constant.channelId,
-    userId: 'guest-1001',
-    displayName: 'Guest 1001',
-  );
+    void updateConfig(DemoUiConfig newConfig) {
+      ref.read(demoConfigProvider.notifier).state = newConfig;
+    }
 
-  void updateConfig(DemoUiConfig newConfig) {
-    setState(() {
-      config = newConfig;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return QMultichannelProvider(
       appId: config.appId,
       title: config.roomTitle,
