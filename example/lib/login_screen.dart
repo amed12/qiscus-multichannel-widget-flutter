@@ -80,7 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 32),
 
                       // Account Section
-                      _SectionHeader('1. Basic Configuration'),
+                      _sectionHeader('1. Basic Configuration'),
                       _buildTextField(
                         controller: appIdController,
                         label: 'App ID',
@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
 
                       const SizedBox(height: 16),
-                      _SectionHeader('2. Identity Information'),
+                      _sectionHeader('2. Identity Information'),
                       _buildTextField(
                         controller: usernameController,
                         label: 'User ID',
@@ -114,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
 
                       const SizedBox(height: 16),
-                      _SectionHeader('3. Showcase Preset'),
+                      _sectionHeader('3. Showcase Preset'),
                       _buildThemeSelector(),
                       const SizedBox(height: 10),
                       _buildToggles(),
@@ -132,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _SectionHeader(String title) {
+  Widget _sectionHeader(String title) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(bottom: 8, top: 4),
@@ -168,7 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildThemeSelector() {
     return DropdownButtonFormField<DemoThemePreset>(
-      value: widget.config.themePreset,
+      initialValue: widget.config.themePreset,
       decoration: InputDecoration(
         labelText: 'Theme Preset',
         prefixIcon: const Icon(Icons.palette_outlined, size: 20),
@@ -207,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeColor: const Color(0xFF34917C),
+          activeTrackColor: const Color(0xFF34917C),
         )
       ],
     );
@@ -291,9 +291,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error initiating chat: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error initiating chat: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => initiating = false);
     }
