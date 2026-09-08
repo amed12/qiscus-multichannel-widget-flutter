@@ -70,9 +70,13 @@ InitiateChatFunction initiateChat(InitiateChatRef ref) {
       data['session_id'] = secureSession.id;
     }
 
-    var json = await http
-        .post(initiateUrl, body: data)
-        .then((r) => jsonDecode(r.body) as Map<String, dynamic>);
+    var response = await http.post(initiateUrl, body: data);
+    if (response.statusCode != 200) {
+      throw Exception(
+        'initiate_chat failed with status ${response.statusCode}: ${response.body}',
+      );
+    }
+    var json = jsonDecode(response.body) as Map<String, dynamic>;
 
     var identityToken = json['data']['identity_token'] as String;
     var roomJson = json['data']['customer_room'] as Map<String, dynamic>;
@@ -124,7 +128,9 @@ InitiateChatFunction initiateChat(InitiateChatRef ref) {
       storage.delete(key: sessionKey).ignore();
     }
     if (isSecure && sessionId != null) {
-      var userId = user.id.split('_')[1];
+      var underscoreIdx = user.id.indexOf('_');
+      var userId =
+          underscoreIdx == -1 ? user.id : user.id.substring(underscoreIdx + 1);
       // Save session data to local
       var data = SecureSession(
         appId: qiscus.appId!,
