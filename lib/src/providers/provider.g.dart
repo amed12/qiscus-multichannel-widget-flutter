@@ -8,15 +8,15 @@ part of 'provider.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$_SecureSession _$$_SecureSessionFromJson(Map<String, dynamic> json) =>
-    _$_SecureSession(
+_$SecureSessionImpl _$$SecureSessionImplFromJson(Map<String, dynamic> json) =>
+    _$SecureSessionImpl(
       appId: json['appId'] as String,
       channelId: json['channelId'] as String,
       id: json['id'] as String,
       userId: json['userId'] as String,
     );
 
-Map<String, dynamic> _$$_SecureSessionToJson(_$_SecureSession instance) =>
+Map<String, dynamic> _$$SecureSessionImplToJson(_$SecureSessionImpl instance) =>
     <String, dynamic>{
       'appId': instance.appId,
       'channelId': instance.channelId,
@@ -618,12 +618,11 @@ final initiateChatUrlProvider = AutoDisposeProvider<Uri>.internal(
 );
 
 typedef InitiateChatUrlRef = AutoDisposeProviderRef<Uri>;
-String _$initiateChatHash() => r'2965f5dd1970ff879f734496fde770e4db0dd4d1';
+String _$initiateChatHash() => r'c6cd6583d068dee6c59d1ef6b43ee9e664db897f';
 
 /// See also [initiateChat].
 @ProviderFor(initiateChat)
-final initiateChatProvider =
-    AutoDisposeFutureProvider<Future<QChatRoom> Function()>.internal(
+final initiateChatProvider = AutoDisposeProvider<InitiateChatFunction>.internal(
   initiateChat,
   name: r'initiateChatProvider',
   debugGetCreateSourceHash:
@@ -632,8 +631,7 @@ final initiateChatProvider =
   allTransitiveDependencies: null,
 );
 
-typedef InitiateChatRef
-    = AutoDisposeFutureProviderRef<Future<QChatRoom> Function()>;
+typedef InitiateChatRef = AutoDisposeProviderRef<InitiateChatFunction>;
 String _$lastMessageHash() => r'8bbe9fb5a12f24054d07061c82c0215b538ef524';
 
 /// See also [lastMessage].
@@ -722,7 +720,7 @@ final sortedMessagesProvider = AutoDisposeProvider<List<QMessage>>.internal(
 );
 
 typedef SortedMessagesRef = AutoDisposeProviderRef<List<QMessage>>;
-String _$mappedMessagesHash() => r'062af1eb3eb74428ab7a959199c2dc9ab219c737';
+String _$mappedMessagesHash() => r'daf4b910374e65b870094e42d63f339ebb38490f';
 
 /// See also [mappedMessages].
 @ProviderFor(mappedMessages)
@@ -793,7 +791,7 @@ final qiscusSDKProvider = Provider<QiscusSDK>.internal(
 );
 
 typedef QiscusSDKRef = ProviderRef<QiscusSDK>;
-String _$qiscusHash() => r'd331ec23290a9fcc9aba159059deaa9e0c8a211a';
+String _$qiscusHash() => r'1fecabbbfbdbae85b731caa7f568da0c2bce1a50';
 
 /// See also [qiscus].
 @ProviderFor(qiscus)
@@ -851,7 +849,7 @@ final sessionalProvider = AutoDisposeFutureProvider<bool>.internal(
 
 typedef SessionalRef = AutoDisposeFutureProviderRef<bool>;
 String _$encSharedPreferenceHash() =>
-    r'939afe8d6547ebac90d688b1db64b416e404d00a';
+    r'19133edd4a382a206d5539cc3f20949f5411d61c';
 
 /// See also [encSharedPreference].
 @ProviderFor(encSharedPreference)
@@ -895,7 +893,7 @@ final userTypingProvider = AutoDisposeStreamProvider<QUserTyping>.internal(
 );
 
 typedef UserTypingRef = AutoDisposeStreamProviderRef<QUserTyping>;
-String _$messagesNotifierHash() => r'b335eae428942bb60eb4ec1c2325c4cd7a013600';
+String _$messagesNotifierHash() => r'095fac9f6866db24bb9b858640524dc3c7ccbe85';
 
 /// See also [MessagesNotifier].
 @ProviderFor(MessagesNotifier)

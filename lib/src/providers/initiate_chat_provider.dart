@@ -10,22 +10,24 @@ Uri initiateChatUrl(InitiateChatUrlRef ref) {
 typedef InitiateChatFunction = Future<QChatRoom> Function();
 
 @riverpod
-Future<InitiateChatFunction> initiateChat(InitiateChatRef ref) async {
-  var qiscus = await ref.watch(qiscusProvider.future);
-  var userId = ref.watch(userIdProvider);
-  var displayName = ref.watch(displayNameProvider);
-  var avatarUrl = ref.watch(userAvatarUrl);
-  var userProperties = ref.watch(userPropertiesProvider);
-  var channelId = ref.watch(channelIdConfigProvider);
-  var sdkUserExtras = ref.watch(sdkUserExtrasProvider);
-  var initiateUrl = ref.watch(initiateChatUrlProvider);
-  var deviceId = ref.watch(deviceIdConfigProvider);
-  var deviceIdDevelopment = ref.watch(deviceIdDevelopmentModeProvider);
-  var userExtras = ref.watch(userExtrasProvider);
-
-  var storage = ref.watch(encSharedPreferenceProvider);
-
+InitiateChatFunction initiateChat(InitiateChatRef ref) {
   return () async {
+    // Dibaca di sini (bukan di builder luar) agar setiap pemanggilan closure
+    // selalu mengambil nilai terkini, tanpa membuat provider ini rebuild /
+    // menghasilkan closure baru saat salah satu dependency berubah.
+    var qiscus = await ref.read(qiscusProvider.future);
+    var userId = ref.read(userIdProvider);
+    var displayName = ref.read(displayNameProvider);
+    var avatarUrl = ref.read(userAvatarUrl);
+    var userProperties = ref.read(userPropertiesProvider);
+    var channelId = ref.read(channelIdConfigProvider);
+    var sdkUserExtras = ref.read(sdkUserExtrasProvider);
+    var initiateUrl = ref.read(initiateChatUrlProvider);
+    var deviceId = ref.read(deviceIdConfigProvider);
+    var deviceIdDevelopment = ref.read(deviceIdDevelopmentModeProvider);
+    var userExtras = ref.read(userExtrasProvider);
+    var storage = ref.read(encSharedPreferenceProvider);
+
     var nonce = await qiscus.getJWTNonce();
     var data = <String, dynamic>{
       'app_id': qiscus.appId,
@@ -42,8 +44,13 @@ Future<InitiateChatFunction> initiateChat(InitiateChatRef ref) async {
     if (userExtras != null) data['extras'] = jsonEncode(userExtras);
     if (channelId != null) data['channel_id'] = channelId;
 
+    final sessionKey = StorageKey.getSecureSessionKey(
+      appId: qiscus.appId!,
+      channelId: channelId,
+      userId: userId,
+    );
     var secureSession = await storage
-        .read(key: StorageKey.secureSession)
+        .read(key: sessionKey)
         .then((v) => v == null ? null : jsonDecode(v) as Map<String, dynamic>)
         .then((v) => v == null ? null : SecureSession.fromJson(v));
 
@@ -106,20 +113,20 @@ Future<InitiateChatFunction> initiateChat(InitiateChatRef ref) async {
     var sessionId = roomJson['session_id'] as String?;
     channelId = (roomJson['channel_id'] as int).toString();
     if (isSecure == false) {
-      storage.delete(key: StorageKey.secureSession).ignore();
+      storage.delete(key: sessionKey).ignore();
     }
     if (isSecure && sessionId != null) {
       var userId = user.id.split('_')[1];
       // Save session data to local
       var data = SecureSession(
         appId: qiscus.appId!,
-        channelId: channelId!,
+        channelId: channelId,
         userId: userId,
         id: sessionId,
       );
       ref.read(secureSessionProvider.notifier).state = data;
       await storage.write(
-        key: StorageKey.secureSession,
+        key: sessionKey,
         value: jsonEncode(data.toJson()),
       );
     }

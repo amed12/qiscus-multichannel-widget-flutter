@@ -12,7 +12,7 @@ part of 'provider.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 SecureSession _$SecureSessionFromJson(Map<String, dynamic> json) {
   return _SecureSession.fromJson(json);
@@ -80,22 +80,22 @@ class _$SecureSessionCopyWithImpl<$Res, $Val extends SecureSession>
 }
 
 /// @nodoc
-abstract class _$$_SecureSessionCopyWith<$Res>
+abstract class _$$SecureSessionImplCopyWith<$Res>
     implements $SecureSessionCopyWith<$Res> {
-  factory _$$_SecureSessionCopyWith(
-          _$_SecureSession value, $Res Function(_$_SecureSession) then) =
-      __$$_SecureSessionCopyWithImpl<$Res>;
+  factory _$$SecureSessionImplCopyWith(
+          _$SecureSessionImpl value, $Res Function(_$SecureSessionImpl) then) =
+      __$$SecureSessionImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({String appId, String channelId, String id, String userId});
 }
 
 /// @nodoc
-class __$$_SecureSessionCopyWithImpl<$Res>
-    extends _$SecureSessionCopyWithImpl<$Res, _$_SecureSession>
-    implements _$$_SecureSessionCopyWith<$Res> {
-  __$$_SecureSessionCopyWithImpl(
-      _$_SecureSession _value, $Res Function(_$_SecureSession) _then)
+class __$$SecureSessionImplCopyWithImpl<$Res>
+    extends _$SecureSessionCopyWithImpl<$Res, _$SecureSessionImpl>
+    implements _$$SecureSessionImplCopyWith<$Res> {
+  __$$SecureSessionImplCopyWithImpl(
+      _$SecureSessionImpl _value, $Res Function(_$SecureSessionImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -106,7 +106,7 @@ class __$$_SecureSessionCopyWithImpl<$Res>
     Object? id = null,
     Object? userId = null,
   }) {
-    return _then(_$_SecureSession(
+    return _then(_$SecureSessionImpl(
       appId: null == appId
           ? _value.appId
           : appId // ignore: cast_nullable_to_non_nullable
@@ -129,15 +129,15 @@ class __$$_SecureSessionCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$_SecureSession implements _SecureSession {
-  const _$_SecureSession(
+class _$SecureSessionImpl implements _SecureSession {
+  const _$SecureSessionImpl(
       {required this.appId,
       required this.channelId,
       required this.id,
       required this.userId});
 
-  factory _$_SecureSession.fromJson(Map<String, dynamic> json) =>
-      _$$_SecureSessionFromJson(json);
+  factory _$SecureSessionImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SecureSessionImplFromJson(json);
 
   @override
   final String appId;
@@ -154,10 +154,10 @@ class _$_SecureSession implements _SecureSession {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$_SecureSession &&
+            other is _$SecureSessionImpl &&
             (identical(other.appId, appId) || other.appId == appId) &&
             (identical(other.channelId, channelId) ||
                 other.channelId == channelId) &&
@@ -172,12 +172,12 @@ class _$_SecureSession implements _SecureSession {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$_SecureSessionCopyWith<_$_SecureSession> get copyWith =>
-      __$$_SecureSessionCopyWithImpl<_$_SecureSession>(this, _$identity);
+  _$$SecureSessionImplCopyWith<_$SecureSessionImpl> get copyWith =>
+      __$$SecureSessionImplCopyWithImpl<_$SecureSessionImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$_SecureSessionToJson(
+    return _$$SecureSessionImplToJson(
       this,
     );
   }
@@ -188,10 +188,10 @@ abstract class _SecureSession implements SecureSession {
       {required final String appId,
       required final String channelId,
       required final String id,
-      required final String userId}) = _$_SecureSession;
+      required final String userId}) = _$SecureSessionImpl;
 
   factory _SecureSession.fromJson(Map<String, dynamic> json) =
-      _$_SecureSession.fromJson;
+      _$SecureSessionImpl.fromJson;
 
   @override
   String get appId;
@@ -203,6 +203,6 @@ abstract class _SecureSession implements SecureSession {
   String get userId;
   @override
   @JsonKey(ignore: true)
-  _$$_SecureSessionCopyWith<_$_SecureSession> get copyWith =>
+  _$$SecureSessionImplCopyWith<_$SecureSessionImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

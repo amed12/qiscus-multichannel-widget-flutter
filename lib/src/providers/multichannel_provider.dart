@@ -85,7 +85,7 @@ class _QMultichannelProviderRef implements IQMultichannel {
 
   @override
   Future<QChatRoom> initiateChat() async {
-    return ref.read(initiateChatProvider.future).then((f) => f());
+    return ref.read(initiateChatProvider).call();
   }
 
   @override
@@ -254,7 +254,7 @@ class _QMultichannelWidgetRef implements IQMultichannel {
 
   @override
   Future<QChatRoom> initiateChat() async {
-    return ref.read(initiateChatProvider.future).then((f) => f());
+    return ref.read(initiateChatProvider).call();
   }
 
   @override
