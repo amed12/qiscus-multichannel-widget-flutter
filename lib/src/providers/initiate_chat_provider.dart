@@ -157,7 +157,9 @@ Future<QChatRoomWithMessages> getChatRoomWithMessages({
   required QiscusSDK qiscus,
   required int roomId,
 }) {
-  return qiscus.getChatRoomWithMessages(roomId: roomId).timeout(
-      const Duration(seconds: 2),
-      onTimeout: () => getChatRoomWithMessages(qiscus: qiscus, roomId: roomId));
+  return retryWithBackoff(
+    () => qiscus.getChatRoomWithMessages(roomId: roomId),
+    timeout: const Duration(seconds: 2),
+    label: 'getChatRoomWithMessages(roomId: $roomId)',
+  );
 }

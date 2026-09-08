@@ -17,6 +17,7 @@ import '../models.dart';
 import '../states/app_state.dart';
 import '../states/app_theme.dart';
 import '../utils/extensions.dart';
+import '../utils/retry_with_backoff.dart';
 import '../widgets/chat_buttons.dart';
 import '../widgets/chat_carousel.dart';
 
