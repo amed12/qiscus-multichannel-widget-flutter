@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'
     hide Provider, ChangeNotifierProvider;
+import 'package:qiscus_chat_sdk/qiscus_chat_sdk.dart' hide QAccount;
 
 import 'config/avatar_config.dart';
 import 'config/subtitle_config.dart';
@@ -71,8 +72,13 @@ class _QMultichannelProviderState extends ConsumerState<QMultichannelProvider> {
   }
 
   List<Override> get _overrides {
-    if (widget.parentProviderContainer != null) return [];
+    if (widget.parentProviderContainer != null) {
+      // Even with a shared parent container, each channel gets its own SDK
+      // instance so two channels in one app don't share MQTT/realtime state.
+      return [qiscusSDKProvider.overrideWith((_) => QiscusSDK())];
+    }
     return [
+      qiscusSDKProvider.overrideWith((_) => QiscusSDK()),
       appIdProvider.overrideWithValue(widget.appId),
       appThemeConfigProvider.overrideWithValue(widget.theme),
       baseUrlProvider.overrideWithValue(widget.baseUrl),
