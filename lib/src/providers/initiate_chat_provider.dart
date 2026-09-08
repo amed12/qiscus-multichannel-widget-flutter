@@ -49,6 +49,15 @@ InitiateChatFunction initiateChat(InitiateChatRef ref) {
       channelId: channelId,
       userId: userId,
     );
+
+    await migrateLegacySecureSession(
+      storage: storage,
+      sessionKey: sessionKey,
+      appId: qiscus.appId!,
+      channelId: channelId,
+      userId: userId,
+    );
+
     var secureSession = await storage
         .read(key: sessionKey)
         .then((v) => v == null ? null : jsonDecode(v) as Map<String, dynamic>)
@@ -99,12 +108,11 @@ InitiateChatFunction initiateChat(InitiateChatRef ref) {
           .ignore();
     }
 
-    QChatRoomWithMessages roomData;
-    try {
-      roomData = await getChatRoomWithMessages(qiscus: qiscus, roomId: roomId);
-    } catch (e) {
-      roomData = QChatRoomWithMessages(QChatRoom(id: 1, uniqueId: '1'), []);
-    }
+    // Kalau getChatRoomWithMessages gagal, error dibiarkan lempar ke atas
+    // (bukan diganti room dummy) supaya host app tahu initiateChat benar-benar
+    // gagal dan bisa menampilkan error state yang sesuai, bukan chat kosong
+    // yang terlihat seperti berhasil.
+    var roomData = await getChatRoomWithMessages(qiscus: qiscus, roomId: roomId);
     var room = roomData.room;
     var messages = roomData.messages;
 

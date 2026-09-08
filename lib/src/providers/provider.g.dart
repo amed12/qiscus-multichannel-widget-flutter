@@ -618,7 +618,7 @@ final initiateChatUrlProvider = AutoDisposeProvider<Uri>.internal(
 );
 
 typedef InitiateChatUrlRef = AutoDisposeProviderRef<Uri>;
-String _$initiateChatHash() => r'c6cd6583d068dee6c59d1ef6b43ee9e664db897f';
+String _$initiateChatHash() => r'40f53f2413699ca2bec41309dff6e33ebe9a300d';
 
 /// See also [initiateChat].
 @ProviderFor(initiateChat)
@@ -720,7 +720,7 @@ final sortedMessagesProvider = AutoDisposeProvider<List<QMessage>>.internal(
 );
 
 typedef SortedMessagesRef = AutoDisposeProviderRef<List<QMessage>>;
-String _$mappedMessagesHash() => r'daf4b910374e65b870094e42d63f339ebb38490f';
+String _$mappedMessagesHash() => r'062af1eb3eb74428ab7a959199c2dc9ab219c737';
 
 /// See also [mappedMessages].
 @ProviderFor(mappedMessages)

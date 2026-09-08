@@ -162,6 +162,12 @@ class _QMultichannelProviderRef implements IQMultichannel {
       );
       await storage.delete(key: sessionKey).catchError((_) {});
     }
+    // Best-effort: bersihkan juga key lama (pra-fix session-per-channel)
+    // kalau masih ada residu, mis. user logout sebelum sempat initiateChat
+    // lagi setelah update sehingga migrasi belum pernah jalan.
+    await storage
+        .delete(key: StorageKey.legacySecureSessionKey)
+        .catchError((_) {});
 
     await ref.read(qiscusProvider.future).then((q) => q.clearUser());
   }
@@ -346,6 +352,12 @@ class _QMultichannelWidgetRef implements IQMultichannel {
       );
       await storage.delete(key: sessionKey).catchError((_) {});
     }
+    // Best-effort: bersihkan juga key lama (pra-fix session-per-channel)
+    // kalau masih ada residu, mis. user logout sebelum sempat initiateChat
+    // lagi setelah update sehingga migrasi belum pernah jalan.
+    await storage
+        .delete(key: StorageKey.legacySecureSessionKey)
+        .catchError((_) {});
 
     await ref.read(qiscusProvider.future).then((q) => q.clearUser());
   }
