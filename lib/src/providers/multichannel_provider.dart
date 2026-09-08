@@ -142,12 +142,27 @@ class _QMultichannelProviderRef implements IQMultichannel {
 
   @override
   Future<void> clearUser() async {
+    var appId = ref.read(appIdProvider);
+    var channelId = ref.read(channelIdConfigProvider);
+    var userId = ref.read(userIdProvider);
+    var storage = ref.read(encSharedPreferenceProvider);
+
     ref.read(userIdProvider.notifier).state = null;
     ref.read(displayNameProvider.notifier).state = null;
     ref.read(userPropertiesProvider.notifier).state = null;
     ref.read(sdkUserExtrasProvider.notifier).state = null;
     ref.read(appStateProvider.notifier).state = const AppState.initial();
     ref.read(messagesNotifierProvider.notifier).clear();
+
+    if (appId != null && userId != null) {
+      final sessionKey = StorageKey.getSecureSessionKey(
+        appId: appId,
+        channelId: channelId,
+        userId: userId,
+      );
+      await storage.delete(key: sessionKey).catchError((_) {});
+    }
+
     await ref.read(qiscusProvider.future).then((q) => q.clearUser());
   }
 
@@ -311,12 +326,27 @@ class _QMultichannelWidgetRef implements IQMultichannel {
 
   @override
   Future<void> clearUser() async {
+    var appId = ref.read(appIdProvider);
+    var channelId = ref.read(channelIdConfigProvider);
+    var userId = ref.read(userIdProvider);
+    var storage = ref.read(encSharedPreferenceProvider);
+
     ref.read(userIdProvider.notifier).state = null;
     ref.read(displayNameProvider.notifier).state = null;
     ref.read(userPropertiesProvider.notifier).state = null;
     ref.read(sdkUserExtrasProvider.notifier).state = null;
     ref.read(appStateProvider.notifier).state = const AppState.initial();
     ref.read(messagesNotifierProvider.notifier).clear();
+
+    if (appId != null && userId != null) {
+      final sessionKey = StorageKey.getSecureSessionKey(
+        appId: appId,
+        channelId: channelId,
+        userId: userId,
+      );
+      await storage.delete(key: sessionKey).catchError((_) {});
+    }
+
     await ref.read(qiscusProvider.future).then((q) => q.clearUser());
   }
 
