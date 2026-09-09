@@ -2,24 +2,74 @@ part of 'provider.dart';
 
 @riverpod
 class MessagesNotifier extends _$MessagesNotifier {
+  int? _roomId;
+
   @override
   List<QMessage> build() {
     ref.subscribe(messageReceivedProvider, (QMessage m) {
       _onMessageReceived(m);
     });
 
-    var m = ref.watch(roomProvider.select((v) => v.valueOrNull?.messages));
+    // Snapshot room (re)loads — initiateChat() pertama maupun ulang — lewat
+    // listener, BUKAN ref.watch: watch akan me-rebuild notifier ini dan
+    // meng-clobber state lokal (pesan baru yang belum ada di snapshot
+    // server) — itu bug draft-lost. Listen tidak membuat dependency, jadi
+    // build() hanya jalan sekali per siklus hidup notifier.
+    final sub = ref.listen<AsyncValue<QChatRoomWithMessages>>(
+      roomProvider,
+      (prev, next) {
+        _syncFromRoom(next);
+      },
+    );
+    ref.onDispose(sub.close);
 
-    // Snapshot server hanya dipakai sebagai inisialisasi awal (saat belum ada
-    // pesan sama sekali). Setelah state lokal terisi (mis. pesan baru dikirim
-    // atau status sementara), rebuild berikutnya — termasuk saat
-    // initiateChat() dipanggil ulang — TIDAK boleh menimpa state dengan
-    // snapshot server yang belum memuat pesan lokal tersebut.
-    if (state.isEmpty && m != null) {
-      return m;
+    // Seed awal: kalau room sudah termuat saat notifier pertama dibangun
+    // (flow normal: initiateChat() selesai sebelum QChatRoomScreen dibuka),
+    // pakai snapshot server sebagai state awal. Tidak membaca `state`
+    // sendiri di dalam build (Riverpod melarangnya).
+    var room = ref.read(roomProvider);
+    var messages = room.valueOrNull?.messages;
+    if (messages != null) {
+      _roomId = room.valueOrNull!.room.id;
+      return [...messages];
     }
 
-    return state;
+    return const [];
+  }
+
+  /// Sinkronkan snapshot server dari [roomProvider] ke state.
+  ///
+  /// - Room berbeda (channel pindah / login baru): ganti total dengan
+  ///   snapshot.
+  /// - Room sama (initiateChat() dipanggil ulang): merge — pesan lokal yang
+  ///   belum ada di snapshot server tetap dipertahankan, yang sudah dikenal
+  ///   di-update dari server.
+  void _syncFromRoom(AsyncValue<QChatRoomWithMessages> room) {
+    var data = room.valueOrNull;
+    if (data == null) return;
+
+    var roomId = data.room.id;
+    if (_roomId != roomId) {
+      _roomId = roomId;
+      state = [...data.messages];
+      return;
+    }
+
+    if (state.isEmpty) {
+      state = [...data.messages];
+      return;
+    }
+
+    var merged = [...state];
+    for (var msg in data.messages) {
+      var idx = merged.indexWhere((v) => v.uniqueId == msg.uniqueId);
+      if (idx == -1) {
+        merged.add(msg);
+      } else {
+        merged[idx] = msg;
+      }
+    }
+    state = merged;
   }
 
   void _onMessageRead(QMessage message) {
