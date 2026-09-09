@@ -1,3 +1,16 @@
+## 1.3.5
+
+- Fix secure session per channel (appId + channelId + userId), with migration from legacy key
+- Fix session overwritten when switching between channels in the same app
+- Fix SDK instance shared between channel widgets (isolate QiscusSDK per channel widget)
+- Fix clearUser() not removing secure session key on logout
+- Fix room load error hidden by dummy room — errors now propagate to host app
+- Fix unbounded retry loop on room load timeout (bounded retry with backoff)
+- Fix crash on identity token parse when HTTP status is not 200
+- Fix crash when userId contains underscore
+- Fix draft text lost on every chat page rebuild (QChatForm now stateful)
+- Fix newly sent message disappearing when initiateChat() runs again
+
 ## 1.3.4
 
 - Change secure storage library
