@@ -9,7 +9,17 @@ class MessagesNotifier extends _$MessagesNotifier {
     });
 
     var m = ref.watch(roomProvider.select((v) => v.valueOrNull?.messages));
-    return m ?? [];
+
+    // Snapshot server hanya dipakai sebagai inisialisasi awal (saat belum ada
+    // pesan sama sekali). Setelah state lokal terisi (mis. pesan baru dikirim
+    // atau status sementara), rebuild berikutnya — termasuk saat
+    // initiateChat() dipanggil ulang — TIDAK boleh menimpa state dengan
+    // snapshot server yang belum memuat pesan lokal tersebut.
+    if (state.isEmpty && m != null) {
+      return m;
+    }
+
+    return state;
   }
 
   void _onMessageRead(QMessage message) {

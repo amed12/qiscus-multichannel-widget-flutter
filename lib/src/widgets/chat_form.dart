@@ -9,15 +9,24 @@ import '../provider.dart';
 import '../providers/replied_message_provider.dart';
 import '../utils/colors.dart';
 
-class QChatForm extends ConsumerWidget {
-  QChatForm({
-    super.key,
-  });
+class QChatForm extends ConsumerStatefulWidget {
+  const QChatForm({super.key});
 
+  @override
+  ConsumerState<QChatForm> createState() => _QChatFormState();
+}
+
+class _QChatFormState extends ConsumerState<QChatForm> {
   final TextEditingController _messageController = TextEditingController();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     var files = ref.watch(uploadNotifierProvider);
 
     var isResolved = ref.watch(isResolvedProvider);
@@ -45,7 +54,7 @@ class QChatForm extends ConsumerWidget {
 
     return Column(
       children: [
-        for (var file in files) _buildUploadIndicatorItem(file, ref),
+        for (var file in files) _buildUploadIndicatorItem(file),
         if (repliedComment != null)
           Container(
             height: 70,
@@ -119,7 +128,7 @@ class QChatForm extends ConsumerWidget {
                         onPressed: () async {
                           showModalBottomSheet(
                             context: context,
-                            builder: (c) => _modalBottomSheet(c, ref),
+                            builder: (c) => _modalBottomSheet(c),
                             isDismissible: true,
                             // isScrollControlled: true,
                             elevation: 2,
@@ -138,7 +147,6 @@ class QChatForm extends ConsumerWidget {
                             enabled: account.hasValue,
                             controller: _messageController,
                             onSubmitted: (_) => _onSubmit(
-                              ref,
                               repliedMessage: repliedComment,
                             ),
                             decoration: InputDecoration(
@@ -155,7 +163,6 @@ class QChatForm extends ConsumerWidget {
                       ),
                       TextButton(
                         onPressed: () => _onSubmit(
-                          ref,
                           repliedMessage: repliedComment,
                         ),
                         child: Image.asset(
@@ -175,7 +182,7 @@ class QChatForm extends ConsumerWidget {
     );
   }
 
-  Widget _buildUploadIndicatorItem(QUpload file, WidgetRef ref) {
+  Widget _buildUploadIndicatorItem(QUpload file) {
     return Container(
       color: Colors.grey[200],
       height: 55,
@@ -205,7 +212,7 @@ class QChatForm extends ConsumerWidget {
     );
   }
 
-  void _onSubmit(WidgetRef ref, {QMessage? repliedMessage}) async {
+  void _onSubmit({QMessage? repliedMessage}) async {
     var text = _messageController.text;
 
     if (text.trim().isEmpty) return;
@@ -228,7 +235,7 @@ class QChatForm extends ConsumerWidget {
     }
   }
 
-  Widget _modalBottomSheet(BuildContext context, WidgetRef ref) {
+  Widget _modalBottomSheet(BuildContext context) {
     var iconColor = const Color.fromARGB(255, 85, 178, 154);
     var textColor = Colors.black87;
 
@@ -265,7 +272,7 @@ class QChatForm extends ConsumerWidget {
                   Navigator.pop(context);
                   FilePicker.platform
                       .pickFiles(type: FileType.image)
-                      .then((v) => _fileChoosed(v, ref));
+                      .then((v) => _fileChoosed(v));
                 },
               ),
             ),
@@ -295,7 +302,7 @@ class QChatForm extends ConsumerWidget {
                   Navigator.pop(context);
                   FilePicker.platform
                       .pickFiles(type: FileType.any)
-                      .then((v) => _fileChoosed(v, ref));
+                      .then((v) => _fileChoosed(v));
                 },
               ),
             ),
@@ -305,7 +312,7 @@ class QChatForm extends ConsumerWidget {
     );
   }
 
-  void _fileChoosed(FilePickerResult? value, WidgetRef ref) {
+  void _fileChoosed(FilePickerResult? value) {
     if (value == null) return;
     var files = value.files
         .where((v) => v.path != null)
