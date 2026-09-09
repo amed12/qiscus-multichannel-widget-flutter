@@ -30,23 +30,20 @@ const _channelBId = '126963'; // isi dengan channel kedua yang valid
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Satu container induk dipakai BERSAMA oleh kedua channel widget.
-  // ProviderScope di sini dibutuhkan karena QMultichannelProvider dengan
-  // parentProviderContainer membaca provider-nya di initState.
-  final parentContainer = ProviderContainer();
-
-  runApp(
-    ProviderScope(
-      parent: parentContainer,
-      child: TwoChannelsDemo(parentContainer: parentContainer),
-    ),
-  );
+  // CATATAN: tiap channel dibungkus QMultichannelProvider TANPA
+  // parentProviderContainer — setiap provider membuat ProviderScope mandiri
+  // yang meng-override SEMUA config (appId, channelId, theme, dll) + SDK
+  // instance sendiri. Ini pola yang benar untuk 2 channel dalam satu app.
+  //
+  // JANGAN share parentProviderContainer antar channel DULU: widget baru
+  // meng-isolate qiscusSDKProvider pada jalur parent (fix 1.3.5), provider
+  // config/state (channelId, account, room, session) masih resolve ke parent
+  // yang sama → antar channel saling timpa data.
+  runApp(const TwoChannelsDemo());
 }
 
 class TwoChannelsDemo extends StatelessWidget {
-  const TwoChannelsDemo({super.key, required this.parentContainer});
-
-  final ProviderContainer parentContainer;
+  const TwoChannelsDemo({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +72,6 @@ class TwoChannelsDemo extends StatelessWidget {
                 channelId: _channelAId,
                 username: 'guest-channel-a',
                 displayName: 'Guest Channel A',
-                parentContainer: parentContainer,
               ),
               _ChannelWidget(
                 label: 'Channel B',
@@ -83,7 +79,6 @@ class TwoChannelsDemo extends StatelessWidget {
                 channelId: _channelBId,
                 username: 'guest-channel-b',
                 displayName: 'Guest Channel B',
-                parentContainer: parentContainer,
               ),
             ],
           ),
@@ -100,7 +95,6 @@ class _ChannelWidget extends StatelessWidget {
     required this.channelId,
     required this.username,
     required this.displayName,
-    required this.parentContainer,
   });
 
   final String label;
@@ -108,17 +102,15 @@ class _ChannelWidget extends StatelessWidget {
   final String channelId;
   final String username;
   final String displayName;
-  final ProviderContainer parentContainer;
 
   @override
   Widget build(BuildContext context) {
-    // Setiap channel dibungkus QMultichannelProvider sendiri, dengan
-    // parentProviderContainer yang SAMA. Widget ini yang memastikan
-    // qiscusSDKProvider di-override fresh per channel (fix 1.3.5).
+    // Setiap channel dibungkus QMultichannelProvider sendiri (TANPA parent
+    // container): ProviderScope mandiri meng-override semua config + SDK
+    // instance sendiri → state antar channel benar-benar terpisah.
     return QMultichannelProvider(
       appId: appId,
       channelId: channelId,
-      parentProviderContainer: parentContainer,
       builder: (context) {
         return _ChannelView(
           label: label,
@@ -130,7 +122,7 @@ class _ChannelWidget extends StatelessWidget {
   }
 }
 
-class _ChannelView extends ConsumerWidget {
+class _ChannelView extends ConsumerStatefulWidget {
   const _ChannelView({
     required this.label,
     required this.username,
@@ -142,17 +134,33 @@ class _ChannelView extends ConsumerWidget {
   final String displayName;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ChannelView> createState() => _ChannelViewState();
+}
+
+class _ChannelViewState extends ConsumerState<_ChannelView> {
+  bool _loggingIn = false;
+  String? _loginError;
+
+  String get label => widget.label;
+  String get username => widget.username;
+  String get displayName => widget.displayName;
+
+  @override
+  Widget build(BuildContext context) {
     final account = ref.watch(accountProvider);
     final multichannel = ref.read(QMultichannel.provider);
 
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: account.when(
+        child: account.maybeWhen(
+          // Sudah initiateChat & punya account → tampilkan room info.
           data: (acc) => _buildLoggedIn(context, multichannel, acc),
-          loading: () => const CircularProgressIndicator(),
-          error: (error, _) => _buildError(context, multichannel, error),
+          // Belum initiateChat (loading/error dari provider awal) → tombol
+          // login. Tidak menunggu account resolve: initiateChat-lah yang
+          // membuat account terisi, jadi selama belum ada sesi tampilkan
+          // aksi login.
+          orElse: () => _buildLogin(context, multichannel),
         ),
       ),
     );
@@ -186,18 +194,21 @@ class _ChannelView extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         OutlinedButton(
-          onPressed: () => multichannel.clearUser(),
+          onPressed: () async {
+            await multichannel.clearUser();
+            if (mounted) {
+              setState(() {
+                _loginError = null;
+              });
+            }
+          },
           child: const Text('Logout'),
         ),
       ],
     );
   }
 
-  Widget _buildError(
-    BuildContext context,
-    IQMultichannel multichannel,
-    Object error,
-  ) {
+  Widget _buildLogin(BuildContext context, IQMultichannel multichannel) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -214,21 +225,67 @@ class _ChannelView extends ConsumerWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (_loginError != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _loginError!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onErrorContainer,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: () => _login(multichannel),
-          child: const Text('Login & Start Chat'),
+          onPressed: _loggingIn ? null : () => _login(multichannel),
+          child: _loggingIn
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Login & Start Chat'),
         ),
       ],
     );
   }
 
   Future<void> _login(IQMultichannel multichannel) async {
-    multichannel.setUser(
-      userId: username,
-      displayName: displayName,
-    );
-    await multichannel.initiateChat();
+    setState(() {
+      _loggingIn = true;
+      _loginError = null;
+    });
+
+    try {
+      multichannel.setUser(
+        userId: username,
+        displayName: displayName,
+      );
+      await multichannel.initiateChat();
+      // Account terisi → widget rebuild ke state logged-in.
+    } catch (e) {
+      // Tampilkan pesan error di UI (mis. channel tidak ditemukan / network)
+      // supaya host app bisa lihat kenapa login gagal, bukan crash diam-diam.
+      if (mounted) {
+        setState(() {
+          _loginError = e.toString();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loggingIn = false;
+        });
+      }
+    }
   }
 
   void _openChat(BuildContext context, IQMultichannel multichannel) {

@@ -1,19 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multichannel_flutter_sample/two_channels_screen.dart';
 
 void main() {
   testWidgets('two channel widgets can coexist in one app', (tester) async {
-    final parentContainer = ProviderContainer();
-    addTearDown(parentContainer.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        parent: parentContainer,
-        child: TwoChannelsDemo(parentContainer: parentContainer),
-      ),
-    );
+    await tester.pumpWidget(const TwoChannelsDemo());
 
     // Kedua channel ter-render (TabBar).
     expect(find.text('Channel A'), findsOneWidget);
