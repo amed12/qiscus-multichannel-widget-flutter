@@ -1,3 +1,9 @@
+## 1.3.6
+
+- Fix crash when opening chat room after initiateChat() (regression from 1.3.5 — MessagesNotifier no longer reads its own state inside build())
+- Fix locally-sent messages disappearing when initiateChat() runs again (merge, not overwrite, on same-room reload)
+- Add example: two live-chat channels in one app (each channel isolated) + login error handling demo
+
 ## 1.3.5
 
 - Fix secure session per channel (appId + channelId + userId), with migration from legacy key
