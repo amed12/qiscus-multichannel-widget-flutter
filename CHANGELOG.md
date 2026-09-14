@@ -1,3 +1,15 @@
+## 1.3.7
+
+- Fix `MissingPluginException` crash when opening the chat room on builds that resolve
+  `flutter_secure_storage_x_platform_interface` 1.4.2+: the Dart side calls method channel
+  `plugins.dr1009.com/flutter_secure_storage` while the native plugin shipped in
+  `flutter_secure_storage_x` 10.x/11.x only registers
+  `plugins.it_nomads.com/flutter_secure_storage`. The transitive dependency is now pinned to
+  `>=1.4.1 <1.4.2` — a plain dependency, so the constraint also applies to the resolution of
+  host apps (affects Android, iOS and macOS builds; no API change in the widget).
+- Sync `example/` iOS project with Flutter 3.44 (implicit engine delegate, iOS deployment
+  target 13.0).
+
 ## 1.3.6
 
 - Fix crash when opening chat room after initiateChat() (regression from 1.3.5 — MessagesNotifier no longer reads its own state inside build())
