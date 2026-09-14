@@ -25,6 +25,20 @@ dependencies:
   async: ^2.10.0
   riverpod_annotation: ^2.1.5
   flutter_secure_storage_x: ^10.1.0
+  # Pin transitif — JANGAN DIHAPUS tanpa membaca alasannya.
+  # flutter_secure_storage_x 10.2.x menarik
+  # flutter_secure_storage_x_platform_interface dengan caret ^1.4.1, tapi sejak
+  # 1.4.2 (patch bump, 22 Des 2025) paket itu memakai method channel
+  # `plugins.dr1009.com/flutter_secure_storage` sementara implementasi native
+  # 10.x-11.x masih mendaftarkan `plugins.it_nomads.com/flutter_secure_storage`
+  # (rename domain di sisi native baru ikut di flutter_secure_storage_x 12.0.0).
+  # Akibatnya `read()` melempar MissingPluginException dan app crash saat
+  # membuka chat room (kasus client Viberlink, 2026-09 v1.3.6). 1.4.1 adalah
+  # versi terakhir yang masih selaras dengan native 10.x/11.x.
+  # Catatan: ini harus dependency biasa (bukan dependency_overrides) supaya
+  # batasnya ikut terbawa ke resolusi app konsumen. Naikkan pin ini hanya
+  # bareng kenaikan flutter_secure_storage_x ke >= 12.
+  flutter_secure_storage_x_platform_interface: ">=1.4.1 <1.4.2"
 
 dev_dependencies:
   # flutter_test:
