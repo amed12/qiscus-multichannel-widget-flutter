@@ -23,6 +23,11 @@ menolak jalan sampai keempatnya dibereskan.
 | 3 | Konfigurasi Firebase | `lib/firebase_options.dart` | Regenerate dengan `flutterfire configure` memakai project Firebase **Anda** |
 | 4 | Bundle id / applicationId | `ios/Runner.xcodeproj`, `android/app/build.gradle` | Bundle yang **terdaftar di project Firebase Anda** |
 
+Nomor 4 diperiksa otomatis di iOS: diagnostic membandingkan bundle id aplikasi
+dengan `iosBundleId` di konfigurasi Firebase, dan gagal kalau berbeda. Bawaan
+sample ini `com.example.multichannelFlutterSample`, jadi langkah ini memang
+akan gagal sampai Anda regenerate konfigurasinya — itu disengaja.
+
 Kalau Anda juga ingin memakai alur login penuh di sample ini, ganti `appId` dan
 `channelId` di `lib/constant.dart` dengan nilai Anda.
 
@@ -115,6 +120,7 @@ jadi aman ditempel di tiket.
 | Channel ID terisi | Channel ID kosong atau masih `your_channel_id`; `initiateChat()` tidak dijalankan |
 | Izin notifikasi disetujui | Izin ditolak di perangkat; aktifkan lewat Settings |
 | APNs token tersedia | Simulator, capability belum aktif, atau APNs Auth Key belum ada di Firebase Console |
+| Bundle id cocok dengan project Firebase | Bundle id aplikasi ≠ `iosBundleId` di konfigurasi Firebase. Selama tidak cocok, FCM menolak dengan `SenderId mismatch` walau token terbit |
 | FCM token didapat | Konfigurasi Firebase tidak cocok dengan bundle id aplikasi |
 | `initiateChat()` sukses | App ID / Channel ID salah, atau server tidak terjangkau |
 

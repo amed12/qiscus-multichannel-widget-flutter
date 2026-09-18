@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Nilai bawaan milik project contoh Qiscus. Kalau sample dijalankan dengan
 /// nilai-nilai ini, device akan terdaftar ke App ID dan project Firebase
@@ -106,6 +107,8 @@ class PushDiagnostic {
       return DiagnosticReport(steps);
     }
 
+    steps.add(await _checkBundleId());
+
     var permission = await _requestPermission();
     steps.add(permission.step);
     if (permission.blocked) {
@@ -178,6 +181,58 @@ class PushDiagnostic {
       'Konfigurasi menunjuk ke lingkungan Anda sendiri',
       StepStatus.ok,
       'appId: $appId · channelId: $channelId · projectId: $projectId',
+    );
+  }
+
+  /// Bundle id aplikasi harus terdaftar di project Firebase yang dipakai.
+  /// Kalau tidak cocok, FCM menolak pengiriman dengan `SenderId mismatch`
+  /// walau token berhasil terbit — gejala yang mudah tertukar dengan
+  /// "push tidak sampai".
+  Future<DiagnosticStep> _checkBundleId() async {
+    var info = await PackageInfo.fromPlatform();
+    var actual = info.packageName;
+    var options = Firebase.app().options;
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      var expected = options.iosBundleId;
+
+      if (expected == null || expected.isEmpty) {
+        return DiagnosticStep(
+          'Bundle id cocok dengan project Firebase',
+          StepStatus.warn,
+          'aplikasi: $actual · konfigurasi Firebase tidak memuat iosBundleId',
+          hint: 'Tidak bisa diperiksa otomatis. Pastikan sendiri bundle id '
+              'aplikasi terdaftar di project Firebase yang dipakai.',
+        );
+      }
+
+      if (expected != actual) {
+        return DiagnosticStep(
+          'Bundle id cocok dengan project Firebase',
+          StepStatus.fail,
+          'aplikasi: $actual · Firebase: $expected',
+          hint: 'Keduanya harus sama. Regenerate konfigurasi Firebase dengan '
+              '`flutterfire configure` memakai bundle id aplikasi ini, atau '
+              'daftarkan bundle id ini di project Firebase Anda. Selama tidak '
+              'cocok, FCM menolak pengiriman dengan SenderId mismatch.',
+        );
+      }
+
+      return DiagnosticStep(
+        'Bundle id cocok dengan project Firebase',
+        StepStatus.ok,
+        actual,
+      );
+    }
+
+    // Android: FirebaseOptions tidak membawa nama package, jadi tidak ada
+    // pembanding di sisi Dart. Kecocokannya sudah dipaksa saat build oleh
+    // plugin google-services (build gagal kalau package tidak ada di
+    // google-services.json), jadi di sini cukup ditampilkan.
+    return DiagnosticStep(
+      'Package name aplikasi',
+      StepStatus.ok,
+      '$actual — pastikan terdaftar di project Firebase yang dipakai',
     );
   }
 
