@@ -10,6 +10,10 @@ import 'package:flutter/foundation.dart';
 const qiscusDemoAppId = 'wefds-c6f0p2h1cxwz3oq';
 const qiscusDemoFirebaseProjectId = 'flutter-multichannel-sam-4c9c1';
 
+/// Nilai isian yang harus diganti sebelum sample dipakai.
+const placeholderAppId = 'your_app_id';
+const placeholderChannelId = 'your_channel_id';
+
 enum StepStatus { ok, warn, fail }
 
 class DiagnosticStep {
@@ -75,11 +79,17 @@ class DiagnosticReport {
 class PushDiagnostic {
   PushDiagnostic({
     required this.appId,
+    required this.channelId,
     this.apnsRetries = 5,
     this.apnsRetryDelay = const Duration(seconds: 1),
   });
 
   final String appId;
+
+  /// Wajib diisi. `channel_id` bersifat opsional di request `initiate_chat`,
+  /// jadi kalau kosong ia hilang tanpa error dan room yang terbentuk tidak
+  /// menempel ke channel mana pun — gejalanya mirip "push tidak sampai".
+  final String channelId;
   final int apnsRetries;
   final Duration apnsRetryDelay;
 
@@ -89,7 +99,12 @@ class PushDiagnostic {
     String? fcmToken;
 
     steps.add(_checkFirebaseApp());
-    steps.add(_checkConfigIsYours());
+
+    var config = _checkConfigIsYours();
+    steps.add(config);
+    if (config.status == StepStatus.fail) {
+      return DiagnosticReport(steps);
+    }
 
     var permission = await _requestPermission();
     steps.add(permission.step);
@@ -137,30 +152,32 @@ class PushDiagnostic {
     var projectId =
         Firebase.apps.isEmpty ? null : Firebase.app().options.projectId;
 
-    var usingDemoAppId = appId == qiscusDemoAppId;
-    var usingDemoFirebase = projectId == qiscusDemoFirebaseProjectId;
+    var problems = <String>[
+      if (appId.isEmpty || appId == placeholderAppId)
+        'App ID belum diisi (masih "$placeholderAppId")',
+      if (appId == qiscusDemoAppId)
+        'App ID masih milik contoh Qiscus ($appId)',
+      if (channelId.isEmpty || channelId == placeholderChannelId)
+        'Channel ID belum diisi (masih "$placeholderChannelId")',
+      if (projectId == qiscusDemoFirebaseProjectId)
+        'project Firebase masih milik contoh Qiscus ($projectId)',
+    ];
 
-    if (usingDemoAppId || usingDemoFirebase) {
-      var wrong = [
-        if (usingDemoAppId) 'App ID masih milik contoh Qiscus ($appId)',
-        if (usingDemoFirebase)
-          'project Firebase masih milik contoh Qiscus ($projectId)',
-      ].join('; ');
-
+    if (problems.isNotEmpty) {
       return DiagnosticStep(
         'Konfigurasi menunjuk ke lingkungan Anda sendiri',
         StepStatus.fail,
-        wrong,
-        hint: 'Ganti dulu sesuai PUSH_NOTIFICATION.md. Selama masih memakai '
-            'nilai contoh, device terdaftar ke App ID / project Qiscus dan '
-            'hasil tes ini tidak bisa dipakai untuk menilai apa pun.',
+        problems.join('; '),
+        hint: 'Isi sesuai PUSH_NOTIFICATION.md. Selama masih memakai nilai '
+            'isian atau nilai contoh Qiscus, device terdaftar ke lingkungan '
+            'yang salah dan hasil tes ini tidak bisa dipakai menilai apa pun.',
       );
     }
 
     return DiagnosticStep(
       'Konfigurasi menunjuk ke lingkungan Anda sendiri',
       StepStatus.ok,
-      'appId: $appId · projectId: $projectId',
+      'appId: $appId · channelId: $channelId · projectId: $projectId',
     );
   }
 

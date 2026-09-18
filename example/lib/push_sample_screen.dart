@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:multichannel_flutter_sample/constant.dart' as constant;
 import 'package:multichannel_flutter_sample/push_diagnostic.dart';
 import 'package:qiscus_multichannel_widget/qiscus_multichannel_widget.dart';
 
@@ -19,9 +18,9 @@ class PushSampleScreen extends ConsumerStatefulWidget {
 }
 
 class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
-  late final _appIdController = TextEditingController(text: constant.appId);
+  late final _appIdController = TextEditingController(text: placeholderAppId);
   late final _channelIdController =
-      TextEditingController(text: constant.channelId);
+      TextEditingController(text: placeholderChannelId);
   late final _userIdController = TextEditingController(text: 'push-test-001');
 
   var _steps = <DiagnosticStep>[];
@@ -43,7 +42,10 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
       _fcmToken = null;
     });
 
-    var report = await PushDiagnostic(appId: _appIdController.text.trim()).run();
+    var report = await PushDiagnostic(
+      appId: _appIdController.text.trim(),
+      channelId: _channelIdController.text.trim(),
+    ).run();
 
     setState(() {
       _steps = [...report.steps];
@@ -67,8 +69,28 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
   /// yang valid.
   Future<void> _registerToQiscus(String token) async {
     var mc = ref.read(QMultichannel.provider);
+    var channelId = _channelIdController.text.trim();
 
-    mc.setChannelId(_channelIdController.text.trim());
+    // Dijaga di sini juga: channel_id bersifat opsional di request, jadi kalau
+    // kosong ia hilang tanpa error sama sekali.
+    if (channelId.isEmpty || channelId == placeholderChannelId) {
+      setState(() {
+        _steps = [
+          ..._steps,
+          DiagnosticStep(
+            'Channel ID terisi',
+            StepStatus.fail,
+            'channelId: "$channelId"',
+            hint: 'initiateChat() tidak dijalankan. channel_id wajib diisi — '
+                'di request ia opsional, jadi kalau kosong ia hilang diam-diam '
+                'dan room tidak menempel ke channel mana pun.',
+          ),
+        ];
+      });
+      return;
+    }
+
+    mc.setChannelId(channelId);
     mc.setUser(
       userId: _userIdController.text.trim(),
       displayName: _userIdController.text.trim(),
@@ -95,7 +117,7 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
           DiagnosticStep(
             'initiateChat() sukses — token dikirim ke server',
             StepStatus.ok,
-            'roomId: ${room.id}',
+            'roomId: ${room.id} · channelId: $channelId',
           ),
         ];
       });
@@ -109,7 +131,7 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
             'error: $e',
             hint: 'Selama initiateChat() gagal, token TIDAK pernah dikirim ke '
                 'server walau setDeviceId() sudah dipanggil. Cek App ID, '
-                'Channel ID, dan koneksi ke server.',
+                'Channel ID ($channelId), dan koneksi ke server.',
           ),
         ];
       });
@@ -144,7 +166,9 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
             ),
             TextField(
               controller: _channelIdController,
-              decoration: const InputDecoration(labelText: 'Channel ID'),
+              decoration: const InputDecoration(
+                labelText: 'Channel ID (wajib)',
+              ),
             ),
             TextField(
               controller: _userIdController,

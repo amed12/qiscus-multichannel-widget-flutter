@@ -8,20 +8,25 @@ Jalankan `Cek push notification (diagnostic)` dari halaman login.
 
 ---
 
-## 1. Ganti tiga hal ini dulu — wajib
+## 1. Ganti empat hal ini dulu — wajib
 
-Sample ini bawaannya menunjuk ke App ID dan project Firebase **milik contoh
-Qiscus**. Kalau dijalankan apa adanya, device Anda terdaftar ke lingkungan
-Qiscus, bukan lingkungan Anda — hasil tesnya tidak bisa dipakai untuk menilai
-apa pun. Diagnostic akan menolak jalan sampai ini dibereskan.
+App ID dan Channel ID sengaja dikosongkan jadi nilai isian, dan konfigurasi
+Firebase bawaannya masih milik project contoh Qiscus. Selama belum diganti,
+device Anda akan terdaftar ke lingkungan Qiscus — bukan lingkungan Anda —
+sehingga hasil tesnya tidak bisa dipakai untuk menilai apa pun. Diagnostic
+menolak jalan sampai keempatnya dibereskan.
 
 | # | Ganti | Di mana | Jadi |
 |---|-------|---------|------|
-| 1 | App ID | `lib/constant.dart` → `appId` | App ID Anda |
-| 2 | Konfigurasi Firebase | `lib/firebase_options.dart` | Regenerate dengan `flutterfire configure` memakai project Firebase **Anda** |
-| 3 | Bundle id / applicationId | `ios/Runner.xcodeproj`, `android/app/build.gradle` | Bundle yang **terdaftar di project Firebase Anda** |
+| 1 | App ID | isian `App ID` di layar diagnostic (bawaan `your_app_id`) | App ID Anda |
+| 2 | Channel ID | isian `Channel ID (wajib)` di layar diagnostic (bawaan `your_channel_id`) | Channel ID Anda |
+| 3 | Konfigurasi Firebase | `lib/firebase_options.dart` | Regenerate dengan `flutterfire configure` memakai project Firebase **Anda** |
+| 4 | Bundle id / applicationId | `ios/Runner.xcodeproj`, `android/app/build.gradle` | Bundle yang **terdaftar di project Firebase Anda** |
 
-Untuk nomor 2, alternatifnya letakkan file resmi dari Firebase Console:
+Kalau Anda juga ingin memakai alur login penuh di sample ini, ganti `appId` dan
+`channelId` di `lib/constant.dart` dengan nilai Anda.
+
+Untuk nomor 3, alternatifnya letakkan file resmi dari Firebase Console:
 
 - Android → `android/app/google-services.json`
 - iOS → `ios/Runner/GoogleService-Info.plist`
@@ -77,13 +82,25 @@ tidak pernah menerima token apa pun dan device tidak akan pernah terdaftar.
 mengirimkannya ke endpoint `set_user_device_token` adalah **`initiateChat()`**.
 
 ```dart
+mc.setChannelId(channelId);            // wajib — lihat catatan di bawah
+mc.setUser(userId: ..., displayName: ...);
 mc.setDeviceId(token, isDevelopment: kDebugMode);
-await mc.initiateChat();   // <- baru di sini token dikirim ke server
+await mc.initiateChat();               // <- baru di sini token dikirim ke server
 ```
 
 Artinya, selama `initiateChat()` belum pernah sukses, device tidak akan pernah
 terdaftar walau token yang didapat sudah benar. Diagnostic melaporkan kedua
 langkah ini terpisah supaya jelas mana yang gagal.
+
+### `channel_id` wajib diisi
+
+Di request `initiate_chat`, `channel_id` bersifat **opsional** — kalau tidak
+diisi, field-nya tidak ikut dikirim dan tidak ada error apa pun. Room tetap
+terbentuk, tapi tidak menempel ke channel mana pun, dan gejalanya mudah
+tertukar dengan "push tidak sampai".
+
+Karena itu diagnostic ini menolak menjalankan `initiateChat()` selama Channel
+ID masih kosong atau masih `your_channel_id`.
 
 ## 5. Membaca hasil diagnostic
 
@@ -94,7 +111,8 @@ jadi aman ditempel di tiket.
 | Langkah gagal | Artinya |
 |---|---|
 | Firebase ter-inisialisasi | `Firebase.initializeApp()` tidak ditunggu di `main()` |
-| Konfigurasi menunjuk ke lingkungan Anda | Masih memakai App ID / project contoh Qiscus — lihat bagian 1 |
+| Konfigurasi menunjuk ke lingkungan Anda | App ID / Channel ID masih berisi nilai isian, atau masih memakai App ID / project contoh Qiscus — lihat bagian 1 |
+| Channel ID terisi | Channel ID kosong atau masih `your_channel_id`; `initiateChat()` tidak dijalankan |
 | Izin notifikasi disetujui | Izin ditolak di perangkat; aktifkan lewat Settings |
 | APNs token tersedia | Simulator, capability belum aktif, atau APNs Auth Key belum ada di Firebase Console |
 | FCM token didapat | Konfigurasi Firebase tidak cocok dengan bundle id aplikasi |
