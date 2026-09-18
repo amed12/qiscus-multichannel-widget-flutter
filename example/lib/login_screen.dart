@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multichannel_flutter_sample/constant.dart' as constant;
+import 'package:multichannel_flutter_sample/push_sample_screen.dart';
 import 'package:qiscus_multichannel_widget/qiscus_multichannel_widget.dart';
 
 class LoginPage extends Page {
@@ -50,6 +54,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const PushSampleScreen(),
+                    ),
+                  ),
+                  child: const Text('Cek push notification (diagnostic)'),
+                ),
                 const Text(
                   'Login',
                   style: TextStyle(
@@ -120,18 +132,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           avatarUrl: 'https://via.placeholder.com/200',
         );
 
-    await FirebaseMessaging.instance.getToken().then((token) {
-      if (token != null) ref.read(QMultichannel.provider).setDeviceId(token);
-    }).catchError((error) {
-      print('got error when setting device token: $error');
-    });
-
+    // Urutannya penting, terutama di iOS: minta izin dulu, tunggu APNs token
+    // terbit, baru ambil FCM token. Memanggil getToken() lebih dulu membuat
+    // token null di iOS tanpa error yang terlihat, sehingga setDeviceId()
+    // tidak pernah menerima token apa pun.
+    //
+    // Lihat PUSH_NOTIFICATION.md dan PushSampleScreen untuk versi yang
+    // melaporkan tiap langkahnya.
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: true,
       badge: true,
       sound: true,
     );
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      await FirebaseMessaging.instance.getAPNSToken();
+    }
+
+    try {
+      var token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        ref
+            .read(QMultichannel.provider)
+            .setDeviceId(token, isDevelopment: kDebugMode);
+      } else {
+        print('FCM token null: device tidak akan menerima push notification');
+      }
+    } catch (error) {
+      print('got error when setting device token: $error');
+    }
 
     try {
       await ref.read(QMultichannel.provider).initiateChat().then((_) {

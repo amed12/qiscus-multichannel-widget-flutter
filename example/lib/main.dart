@@ -7,9 +7,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'firebase_options.dart';
 import 'login_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Harus ditunggu: FirebaseMessaging dipakai segera setelah aplikasi jalan,
+  // dan memanggilnya sebelum inisialisasi selesai membuat token gagal terbit.
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const App());
 }
