@@ -52,11 +52,12 @@ akan menolak pengiriman walau token berhasil terbit.
   aktif di project Anda — cek di Xcode: Signing & Capabilities.
 - **APNs Auth Key (.p8) sudah diunggah ke Firebase Console** Anda, di Project
   Settings → Cloud Messaging. Ini yang dipakai Firebase untuk meneruskan pesan
-  ke APNs — **wajib** (dokumentasi resmi: [Set up APNs
-  keys](https://firebase.google.com/docs/cloud-messaging/ios/certs)). **Satu
-  key yang sama otomatis berlaku untuk environment Development maupun
-  Production** — tidak perlu diunggah dua kali kecuali Anda sengaja memakai
-  [team-scoped key](https://developer.apple.com/help/account/capabilities/communicate-with-apns-using-authentication-tokens/)
+  ke APNs — **wajib**, disebut eksplisit di dokumentasi resmi Firebase untuk
+  **Flutter** ("Mengupload kunci autentikasi APN", bagian iOS+):
+  [Get started with FCM in Flutter apps](https://firebase.google.com/docs/cloud-messaging/flutter/get-started?hl=id).
+  **Satu key yang sama otomatis berlaku untuk environment Development maupun
+  Production** ([sumber: Apple Developer](https://developer.apple.com/help/account/capabilities/communicate-with-apns-using-authentication-tokens/))
+  — tidak perlu diunggah dua kali kecuali Anda sengaja memakai team-scoped key
   yang dibatasi ke satu environment saja.
 - **Development vs Production APNs itu ditentukan Xcode saat build, bukan oleh
   kode Dart.** Menjalankan app langsung dari Xcode ke device (apa pun
@@ -151,18 +152,7 @@ di sisi kredensial FCM pada konfigurasi server Qiscus.
 Ini bagian baru — untuk kasus token sudah terdaftar & CS sudah membalas, tapi
 device tidak menampilkan apa pun. Layar diagnostic ini sekarang juga mencatat
 **pesan yang benar-benar diterima app**, bukan cuma "server bilang sukses
-kirim". Ini yang membedakan dua kemungkinan penyebab yang gejalanya sama-sama
-"tidak ada notifikasi":
-
-- **Payload data-only.** Kalau pesan dari CS sampai ke app (foreground) tapi
-  baris di log tertulis `DATA-ONLY (tidak ada blok notification!)`, itu
-  penyebabnya: iOS **tidak** menampilkan banner otomatis untuk pesan data-only
-  saat app di background/killed — perlu Notification Service Extension atau
-  payload servernya diubah untuk menyertakan blok `notification`/`aps.alert`.
-  Ini pertanyaan untuk tim Qiscus, bukan sesuatu yang bisa diperbaiki di app.
-- **Payload memang ada notification, tapi tetap tidak tampil.** Kemungkinan di
-  capability Xcode (bagian 2) atau di APNs Auth Key (revoked/salah Team
-  ID/environment tidak cocok).
+kirim".
 
 ### Protokol pengujian — ikuti urutan ini persis
 
@@ -172,15 +162,13 @@ kirim". Ini yang membedakan dua kemungkinan penyebab yang gejalanya sama-sama
    milik Anda, tekan **Jalankan diagnostic**. Pastikan semua langkah `[OK]`.
 3. **Sambil app masih di foreground**, minta CS membalas di room yang sama.
    Tunggu baris baru muncul di bagian "Log pesan yang benar-benar diterima
-   app" di layar ini. Catat isinya (`notification` atau `DATA-ONLY`) —
-   **ini langkah paling penting**, karena bentuk payload sama saja baik app
-   foreground maupun background.
+   app" di layar ini — **ini langkah paling penting**, karena bentuk payload
+   sama saja baik app foreground maupun background, dan cuma bisa dibaca
+   dengan mudah saat foreground.
 4. Tekan tombol Home / pindah ke app lain (app jadi background, **jangan** di-
    swipe close). Minta CS membalas lagi di room yang sama.
 5. Amati apakah notifikasi muncul di layar device. Kalau tidak, buka kembali
-   console Xcode dan cari baris `[push][background] messageId=...` — kalau ada
-   baris ini berarti pesan sampai ke app tapi tidak ditampilkan; kalau nihil,
-   pesan tidak sampai sama sekali ke device.
+   console Xcode dan cari baris `[push][background] messageId=...`.
 6. Tekan **Salin hasil**, tempel ke satu pesan, **lalu tambahkan manual** baris
    `[push][background]` dari console Xcode langkah 5 (baris ini tidak
    otomatis ikut ter-copy karena berjalan di isolate terpisah).
@@ -188,3 +176,35 @@ kirim". Ini yang membedakan dua kemungkinan penyebab yang gejalanya sama-sama
    bisa dicocokkan dengan log pengiriman di sisi server Qiscus.
 
 Kirim hasil gabungan langkah 6 dan 7 itu ke tim support untuk dianalisis.
+
+### Contoh log yang seharusnya muncul di langkah 3 (foreground)
+
+Kondisi sehat — payload berisi alert, ini yang diharapkan:
+
+```
+[14:03:07] (foreground) messageId=0:1758... · payload=notification (title: "Pesan baru", body: "...") · data={roomId: ..., type: ...}
+```
+
+Kondisi bermasalah — payload data-only, ini kandidat penyebab langsung:
+
+```
+[14:03:07] (foreground) messageId=0:1758... · payload=DATA-ONLY (tidak ada blok notification!) · data={roomId: ..., type: ...}
+```
+
+Contoh baris `[push][background]` di console Xcode (langkah 5), pola sama:
+
+```
+flutter: [push][background] messageId=0:1758... notification=NULL (data-only) data={roomId: ..., type: ...}
+flutter: [push][background] messageId=0:1758... notification=ADA (title: Pesan baru) data={roomId: ..., type: ...}
+```
+
+### Tabel diagnosis — baca hasilnya, jangan cuma kirim mentah
+
+| Log foreground (langkah 3) | Banner muncul saat background (langkah 5)? | Baris `[push][background]` di console? | Kesimpulan | Siapa yang tindak lanjut |
+|---|---|---|---|---|
+| `notification` (ada title/body) | Ya | Ya | **Sehat.** Registrasi, capability, dan payload semua benar. | Selesai |
+| `notification` (ada title/body) | **Tidak** | Ya | Payload benar & sampai ke app, tapi OS tidak menampilkan banner. Cek: mode Fokus/Do Not Disturb device, izin notifikasi di Settings device (bukan cuma dialog izin di app), atau app masih dianggap "foreground" oleh iOS. | Client (cek device), lalu tim support kalau tetap gagal |
+| `notification` (ada title/body) | **Tidak** | **Tidak ada baris sama sekali** | Pesan tidak sampai ke device sama sekali walau payload-nya benar. Kandidat: APNs Auth Key revoked/salah Team ID, atau Push Notifications capability tidak ikut ter-include di build yang dipasang ke device (misal build lama sebelum entitlements ditambahkan). | Client verifikasi APNs Auth Key di Firebase Console + rebuild & install ulang |
+| **`DATA-ONLY`** | **Tidak** | Ya (data-only juga) | **Kandidat kuat.** Server (Qiscus) mengirim pesan tanpa blok `notification`/`aps.alert`, jadi iOS memang tidak akan pernah menampilkan banner otomatis saat background/killed — ini bukan bug di app. | Tim Qiscus (cek payload push CS reply di backend) |
+| `DATA-ONLY` | **Ya** (tetap muncul) | Ya | Kemungkinan ada logic lain yang menampilkan notifikasi lokal dari data (mis. plugin lain). Jarang terjadi, catat detailnya kalau ini yang muncul. | Tim support (perlu investigasi lanjut) |
+| **Tidak ada baris apa pun** setelah CS membalas (foreground) | — | — | Pesan tidak sampai ke app sama sekali walau app foreground — kemungkinan token yang terdaftar bukan token device ini, atau `initiateChat()` sebelumnya gagal diam-diam. Ulangi dari langkah 2. | Client (ulangi diagnostic dari awal) |
