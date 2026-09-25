@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -27,11 +30,52 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
   String? _fcmToken;
   bool _running = false;
 
+  /// Log pesan yang benar-benar diterima app (bukan cuma "server bilang
+  /// sukses kirim"). Ini yang membuktikan apakah payload dari server berisi
+  /// blok `notification` (alert, auto tampil sebagai banner oleh iOS) atau
+  /// data-only (perlu app aktif untuk menampilkannya — data-only TIDAK akan
+  /// muncul sebagai banner otomatis kalau app di-background/killed).
+  final _receivedLog = <String>[];
+  StreamSubscription<RemoteMessage>? _onMessageSub;
+  StreamSubscription<RemoteMessage>? _onOpenedAppSub;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _onMessageSub = FirebaseMessaging.onMessage.listen((message) {
+      setState(() => _receivedLog.add(_describeMessage('foreground', message)));
+    });
+    _onOpenedAppSub = FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      setState(
+        () => _receivedLog.add(_describeMessage('dibuka dari background', message)),
+      );
+    });
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        setState(
+          () => _receivedLog.add(_describeMessage('dibuka dari killed', message)),
+        );
+      }
+    });
+  }
+
+  String _describeMessage(String context, RemoteMessage message) {
+    var time = DateTime.now().toIso8601String().substring(11, 19);
+    var notif = message.notification;
+    var payloadType = notif == null
+        ? 'DATA-ONLY (tidak ada blok notification!)'
+        : 'notification (title: "${notif.title}", body: "${notif.body}")';
+    return '[$time] ($context) messageId=${message.messageId} · payload=$payloadType · data=${message.data}';
+  }
+
   @override
   void dispose() {
     _appIdController.dispose();
     _channelIdController.dispose();
     _userIdController.dispose();
+    _onMessageSub?.cancel();
+    _onOpenedAppSub?.cancel();
     super.dispose();
   }
 
@@ -140,7 +184,28 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
 
   void _copyReport() {
     var report = DiagnosticReport(_steps, fcmToken: _fcmToken);
-    Clipboard.setData(ClipboardData(text: report.asPlainText()));
+    var buffer = StringBuffer(report.asPlainText());
+
+    buffer.writeln();
+    buffer.writeln('=== Log pesan yang benar-benar diterima app ===');
+    if (_receivedLog.isEmpty) {
+      buffer.writeln(
+        '(kosong — belum ada pesan yang tercatat sampai ke app selama ini '
+        'terbuka di foreground. Kalau CS sudah membalas dan ini tetap kosong, '
+        'berarti pesan tidak sampai ke listener onMessage sama sekali.)',
+      );
+    } else {
+      for (var line in _receivedLog) {
+        buffer.writeln(line);
+      }
+    }
+    buffer.writeln(
+      '(catatan: pesan yang diterima app SAAT BACKGROUND tidak tercatat di '
+      'sini — cek console Xcode/`flutter logs` untuk baris "[push][background]" '
+      'saat pengujian, dan salin baris itu juga.)',
+    );
+
+    Clipboard.setData(ClipboardData(text: buffer.toString()));
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Hasil disalin — tempelkan ke tiket')),
@@ -189,6 +254,31 @@ class _PushSampleScreenState extends ConsumerState<PushSampleScreen> {
                 label: const Text('Salin hasil'),
               ),
             ],
+            const SizedBox(height: 28),
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              'Log pesan yang benar-benar diterima app (foreground). '
+              'Kirim CS balasan sekarang lalu lihat baris muncul di sini — '
+              'kalau payload "DATA-ONLY", itu alasan notifikasi tidak tampil '
+              'otomatis saat app di background/killed.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 10),
+            if (_receivedLog.isEmpty)
+              const Text(
+                '(belum ada pesan tercatat)',
+                style: TextStyle(color: Colors.grey),
+              )
+            else
+              for (var line in _receivedLog)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: SelectableText(
+                    line,
+                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                  ),
+                ),
           ],
         ),
       ),

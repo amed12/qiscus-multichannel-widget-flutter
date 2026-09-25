@@ -41,13 +41,31 @@ akan menolak pengiriman walau token berhasil terbit.
 
 ## 2. Syarat khusus iOS
 
-- **Perangkat fisik.** Simulator tidak menerbitkan APNs token, jadi push tidak
-  bisa diuji di sana.
-- **Capability `Push Notifications`** aktif di Xcode (tab Signing &
-  Capabilities), plus `Background Modes` → `Remote notifications`.
+- **Perangkat fisik, dan jalankan lewat Xcode** (bukan cuma `flutter run`,
+  supaya console Xcode bisa dilihat langsung untuk baris log `[push][background]`
+  di bagian 6). Simulator tidak menerbitkan APNs token, jadi push tidak bisa
+  diuji di sana sama sekali.
+- **Capability `Push Notifications`** dan **`Background Modes` → `Remote
+  notifications`** — sudah otomatis ada di `ios/Runner/Runner.entitlements`
+  dan `Info.plist` sample ini. Kalau ini dipindahkan ke project Anda sendiri
+  (bukan menjalankan sample apa adanya), pastikan dua capability ini juga
+  aktif di project Anda — cek di Xcode: Signing & Capabilities.
 - **APNs Auth Key (.p8) sudah diunggah ke Firebase Console** Anda, di Project
   Settings → Cloud Messaging. Ini yang dipakai Firebase untuk meneruskan pesan
-  ke APNs.
+  ke APNs — **wajib** (dokumentasi resmi: [Set up APNs
+  keys](https://firebase.google.com/docs/cloud-messaging/ios/certs)). **Satu
+  key yang sama otomatis berlaku untuk environment Development maupun
+  Production** — tidak perlu diunggah dua kali kecuali Anda sengaja memakai
+  [team-scoped key](https://developer.apple.com/help/account/capabilities/communicate-with-apns-using-authentication-tokens/)
+  yang dibatasi ke satu environment saja.
+- **Development vs Production APNs itu ditentukan Xcode saat build, bukan oleh
+  kode Dart.** Menjalankan app langsung dari Xcode ke device (apa pun
+  konfigurasi Debug/Release) selalu memakai environment **Development**
+  (sandbox); baru saat diarsipkan untuk TestFlight/App Store dengan
+  distribution profile, environment-nya jadi **Production**. `isDevelopment:
+  kDebugMode` di kode ini cuma pendekatan yang cocok untuk `flutter run` biasa
+  — kalau Anda run lewat Xcode dengan skema Release, `kDebugMode` bisa `false`
+  padahal environment APNs-nya tetap Development.
 - Sertifikat `.p12` **tidak** perlu diunggah ke Qiscus untuk integrasi Flutter.
   Jalur Flutter memakai FCM; kredensial Apple-nya cukup ada di Firebase Console
   Anda.
@@ -127,3 +145,46 @@ jadi aman ditempel di tiket.
 Kalau semua langkah `[OK]` tapi push tetap tidak sampai, masalahnya bukan lagi
 di aplikasi: token sudah terdaftar dengan benar, dan pengecekan berikutnya ada
 di sisi kredensial FCM pada konfigurasi server Qiscus.
+
+## 6. Kalau registrasi sudah `[OK]` tapi notifikasi tetap tidak muncul
+
+Ini bagian baru — untuk kasus token sudah terdaftar & CS sudah membalas, tapi
+device tidak menampilkan apa pun. Layar diagnostic ini sekarang juga mencatat
+**pesan yang benar-benar diterima app**, bukan cuma "server bilang sukses
+kirim". Ini yang membedakan dua kemungkinan penyebab yang gejalanya sama-sama
+"tidak ada notifikasi":
+
+- **Payload data-only.** Kalau pesan dari CS sampai ke app (foreground) tapi
+  baris di log tertulis `DATA-ONLY (tidak ada blok notification!)`, itu
+  penyebabnya: iOS **tidak** menampilkan banner otomatis untuk pesan data-only
+  saat app di background/killed — perlu Notification Service Extension atau
+  payload servernya diubah untuk menyertakan blok `notification`/`aps.alert`.
+  Ini pertanyaan untuk tim Qiscus, bukan sesuatu yang bisa diperbaiki di app.
+- **Payload memang ada notification, tapi tetap tidak tampil.** Kemungkinan di
+  capability Xcode (bagian 2) atau di APNs Auth Key (revoked/salah Team
+  ID/environment tidak cocok).
+
+### Protokol pengujian — ikuti urutan ini persis
+
+1. Jalankan app dari **Xcode** ke **device fisik**, biarkan jendela console
+   Xcode tetap terbuka supaya baris log terlihat.
+2. Buka `Cek push notification (diagnostic)`, isi App ID/Channel ID/User ID
+   milik Anda, tekan **Jalankan diagnostic**. Pastikan semua langkah `[OK]`.
+3. **Sambil app masih di foreground**, minta CS membalas di room yang sama.
+   Tunggu baris baru muncul di bagian "Log pesan yang benar-benar diterima
+   app" di layar ini. Catat isinya (`notification` atau `DATA-ONLY`) —
+   **ini langkah paling penting**, karena bentuk payload sama saja baik app
+   foreground maupun background.
+4. Tekan tombol Home / pindah ke app lain (app jadi background, **jangan** di-
+   swipe close). Minta CS membalas lagi di room yang sama.
+5. Amati apakah notifikasi muncul di layar device. Kalau tidak, buka kembali
+   console Xcode dan cari baris `[push][background] messageId=...` — kalau ada
+   baris ini berarti pesan sampai ke app tapi tidak ditampilkan; kalau nihil,
+   pesan tidak sampai sama sekali ke device.
+6. Tekan **Salin hasil**, tempel ke satu pesan, **lalu tambahkan manual** baris
+   `[push][background]` dari console Xcode langkah 5 (baris ini tidak
+   otomatis ikut ter-copy karena berjalan di isolate terpisah).
+7. Sertakan juga: jam persis langkah 3 dan langkah 4 dilakukan (WIB), supaya
+   bisa dicocokkan dengan log pengiriman di sisi server Qiscus.
+
+Kirim hasil gabungan langkah 6 dan 7 itu ke tim support untuk dianalisis.
